@@ -1,0 +1,95 @@
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import { useAuth } from "@/lib/auth";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card } from "@/components/ui/card";
+import { toast } from "sonner";
+
+export const Route = createFileRoute("/login")({
+  component: LoginPage,
+});
+
+function LoginPage() {
+  const { signIn, signUp, user, loading } = useAuth();
+  const navigate = useNavigate();
+  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!loading && user) navigate({ to: "/dashboard" });
+  }, [user, loading, navigate]);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    const res = mode === "login"
+      ? await signIn(email, password)
+      : await signUp(email, password, name || email.split("@")[0]);
+    setBusy(false);
+    if (res.error) {
+      toast.error(res.error);
+    } else if (mode === "signup") {
+      toast.success("Conta criada. Verifica o teu email para confirmar.");
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-grain flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="w-full max-w-md"
+      >
+        <div className="text-center mb-8">
+          <div className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-accent/30 border border-accent mb-4">
+            <span className="font-display text-2xl text-primary">Q</span>
+          </div>
+          <h1 className="text-3xl font-display font-semibold text-primary">Queijaria</h1>
+          <p className="text-sm text-muted-foreground mt-1 italic">Gestão artesanal de encomendas</p>
+        </div>
+
+        <Card className="p-6 shadow-lg border-border/60">
+          <div className="flex gap-2 mb-6 p-1 bg-muted rounded-lg">
+            <button
+              type="button"
+              onClick={() => setMode("login")}
+              className={`flex-1 py-2 text-sm rounded-md transition-all ${mode === "login" ? "bg-card shadow-sm font-medium text-foreground" : "text-muted-foreground"}`}
+            >Entrar</button>
+            <button
+              type="button"
+              onClick={() => setMode("signup")}
+              className={`flex-1 py-2 text-sm rounded-md transition-all ${mode === "signup" ? "bg-card shadow-sm font-medium text-foreground" : "text-muted-foreground"}`}
+            >Registar</button>
+          </div>
+
+          <form onSubmit={submit} className="space-y-4">
+            {mode === "signup" && (
+              <div className="space-y-1.5">
+                <Label htmlFor="name">Nome</Label>
+                <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="António Silva" />
+              </div>
+            )}
+            <div className="space-y-1.5">
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@queijaria.pt" />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="password">Palavra-passe</Label>
+              <Input id="password" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
+            </div>
+            <Button type="submit" disabled={busy} className="w-full bg-primary hover:bg-primary/90">
+              {busy ? "A processar…" : mode === "login" ? "Entrar" : "Criar conta"}
+            </Button>
+          </form>
+        </Card>
+      </motion.div>
+    </div>
+  );
+}
