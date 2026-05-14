@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, Link, useNavigate, useLocation } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { LayoutDashboard, ClipboardList, LogOut, Menu } from "lucide-react";
+import { LayoutDashboard, ClipboardList, Package, LogOut, Menu } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -25,6 +25,7 @@ function AuthLayout() {
   const nav = [
     { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { to: "/encomendas", label: "Encomendas", icon: ClipboardList },
+    { to: "/produtos", label: "Produtos", icon: Package },
   ];
 
   const NavLinks = ({ onNav }: { onNav?: () => void }) => (
