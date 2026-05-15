@@ -78,26 +78,26 @@ function EncomendasPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <p className="text-sm text-muted-foreground italic">Histórico completo</p>
-          <h1 className="text-3xl md:text-4xl font-display font-semibold text-primary">Encomendas</h1>
+          <p className="text-sm text-muted-foreground italic tracking-wide">Histórico completo</p>
+          <h1 className="text-3xl md:text-4xl font-display font-semibold text-primary mt-1">Encomendas</h1>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" onClick={() => exportPDF(filtered)} disabled={!filtered.length}>
+          <Button variant="outline" size="lg" onClick={() => exportPDF(filtered)} disabled={!filtered.length}>
             <FileDown className="h-4 w-4 mr-1.5" /> PDF
           </Button>
-          <Button variant="outline" onClick={() => exportExcel(filtered)} disabled={!filtered.length}>
+          <Button variant="outline" size="lg" onClick={() => exportExcel(filtered)} disabled={!filtered.length}>
             <FileSpreadsheet className="h-4 w-4 mr-1.5" /> Excel
           </Button>
-          <Button onClick={openNew} className="bg-primary hover:bg-primary/90">
+          <Button size="lg" onClick={openNew} className="bg-primary hover:bg-primary/90 shadow-soft">
             <Plus className="h-4 w-4 mr-1.5" /> Nova
           </Button>
         </div>
       </div>
 
-      <Card className="p-4">
+      <Card className="p-4 md:p-5 shadow-soft border-border/60">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
