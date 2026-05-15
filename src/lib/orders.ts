@@ -5,14 +5,16 @@ export type OrderStatus = Order["status"];
 
 export const STATUS_OPTIONS: { value: OrderStatus; label: string }[] = [
   { value: "pendente", label: "Pendente" },
-  { value: "em_preparacao", label: "Em preparação" },
+  { value: "em_producao", label: "Em Produção" },
+  { value: "pronta", label: "Pronta" },
   { value: "entregue", label: "Entregue" },
-  { value: "cancelada", label: "Cancelada" },
 ];
 
 export const STATUS_LABEL: Record<OrderStatus, string> = {
   pendente: "Pendente",
-  em_preparacao: "Em preparação",
+  em_producao: "Em Produção",
+  em_preparacao: "Em Produção",
+  pronta: "Pronta",
   entregue: "Entregue",
   cancelada: "Cancelada",
 };
