@@ -26,6 +26,7 @@ function AuthLayout() {
   const nav = [
     { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { to: "/encomendas", label: "Encomendas", icon: ClipboardList },
+    { to: "/clientes", label: "Clientes", icon: Users },
     { to: "/produtos", label: "Produtos", icon: Package },
   ];
 
