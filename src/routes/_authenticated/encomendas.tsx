@@ -21,11 +21,36 @@ export const Route = createFileRoute("/_authenticated/encomendas")({
 });
 
 const STATUS_COLORS: Record<OrderStatus, string> = {
-  pendente: "bg-amber-100 text-amber-900 border-amber-200",
-  em_preparacao: "bg-blue-100 text-blue-900 border-blue-200",
-  entregue: "bg-emerald-100 text-emerald-900 border-emerald-200",
+  pendente: "bg-amber-100/70 text-amber-900 border-amber-200",
+  em_producao: "bg-sky-100 text-sky-900 border-sky-200",
+  em_preparacao: "bg-sky-100 text-sky-900 border-sky-200",
+  pronta: "bg-emerald-100 text-emerald-900 border-emerald-200",
+  entregue: "bg-green-800/15 text-green-900 border-green-800/30",
   cancelada: "bg-rose-100 text-rose-900 border-rose-200",
 };
+
+async function updateOrderStatus(id: string, status: OrderStatus) {
+  const { error } = await supabase.from("orders").update({ status }).eq("id", id);
+  if (error) toast.error(error.message);
+  else toast.success("Estado atualizado");
+}
+
+function StatusBadgeSelect({ order }: { order: Order }) {
+  return (
+    <Select value={order.status} onValueChange={(v) => updateOrderStatus(order.id, v as OrderStatus)}>
+      <SelectTrigger
+        className={`h-7 px-2.5 py-0 text-xs rounded-full border w-auto gap-1.5 font-medium shadow-none focus:ring-0 ${STATUS_COLORS[order.status]}`}
+      >
+        <SelectValue>{STATUS_LABEL[order.status]}</SelectValue>
+      </SelectTrigger>
+      <SelectContent>
+        {STATUS_OPTIONS.map((s) => (
+          <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
 
 function EncomendasPage() {
   const [orders, setOrders] = useState<Order[]>([]);
