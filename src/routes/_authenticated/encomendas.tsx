@@ -160,30 +160,30 @@ function EncomendasPage() {
           </div>
 
           {/* Desktop table */}
-          <Card className="hidden md:block overflow-hidden">
+          <Card className="hidden md:block overflow-hidden shadow-elegant border-border/60">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-muted/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                <thead className="bg-muted/50 text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border/70">
                   <tr>
-                    <th className="px-4 py-3">Cliente</th>
-                    <th className="px-4 py-3">Telefone</th>
-                    <th className="px-4 py-3">Produtos</th>
-                    <th className="px-4 py-3">Total</th>
-                    <th className="px-4 py-3">Entrega</th>
-                    <th className="px-4 py-3">Estado</th>
-                    <th className="px-4 py-3"></th>
+                    <th className="px-5 py-4 font-medium">Cliente</th>
+                    <th className="px-5 py-4 font-medium">Telefone</th>
+                    <th className="px-5 py-4 font-medium">Produtos</th>
+                    <th className="px-5 py-4 font-medium">Total</th>
+                    <th className="px-5 py-4 font-medium">Entrega</th>
+                    <th className="px-5 py-4 font-medium">Estado</th>
+                    <th className="px-5 py-4"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border">
+                <tbody className="divide-y divide-border/50">
                   {filtered.map((o) => (
-                    <tr key={o.id} className="hover:bg-muted/30">
-                      <td className="px-4 py-3 font-medium">{o.customer_name}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{o.phone}</td>
-                      <td className="px-4 py-3 max-w-xs truncate text-muted-foreground">{o.products}</td>
-                      <td className="px-4 py-3 font-display text-primary">{formatCurrency(Number(o.total_price))}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{formatDate(o.delivery_date)}</td>
-                      <td className="px-4 py-3">
-                        <span className={`text-xs px-2 py-0.5 rounded-full border ${STATUS_COLORS[o.status]}`}>
+                    <tr key={o.id} className="hover:bg-accent/10 transition-colors">
+                      <td className="px-5 py-4 font-medium">{o.customer_name}</td>
+                      <td className="px-5 py-4 text-muted-foreground">{o.phone}</td>
+                      <td className="px-5 py-4 max-w-xs truncate text-muted-foreground">{o.products}</td>
+                      <td className="px-5 py-4 font-display text-primary">{formatCurrency(Number(o.total_price))}</td>
+                      <td className="px-5 py-4 text-muted-foreground whitespace-nowrap">{formatDate(o.delivery_date)}</td>
+                      <td className="px-5 py-4">
+                        <span className={`text-xs px-2.5 py-1 rounded-full border ${STATUS_COLORS[o.status]}`}>
                           {STATUS_LABEL[o.status]}
                         </span>
                       </td>
