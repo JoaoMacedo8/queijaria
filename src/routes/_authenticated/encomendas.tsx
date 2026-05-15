@@ -163,9 +163,7 @@ function EncomendasPage() {
                 <Card className="p-4">
                   <div className="flex justify-between gap-2 mb-2">
                     <div className="font-medium truncate">{o.customer_name}</div>
-                    <span className={`text-xs px-2 py-0.5 rounded-full border whitespace-nowrap ${STATUS_COLORS[o.status]}`}>
-                      {STATUS_LABEL[o.status]}
-                    </span>
+                    <StatusBadgeSelect order={o} />
                   </div>
                   <div className="text-xs text-muted-foreground space-y-0.5 mb-3">
                     <div>{o.phone}</div>
