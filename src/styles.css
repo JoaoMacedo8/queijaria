@@ -89,9 +89,19 @@
 
 @layer utilities {
   .bg-grain {
+    background-color: var(--background);
     background-image:
-      radial-gradient(at 20% 0%, color-mix(in oklch, var(--gold) 18%, transparent) 0px, transparent 50%),
-      radial-gradient(at 80% 100%, color-mix(in oklch, var(--wood) 12%, transparent) 0px, transparent 50%);
+      radial-gradient(at 15% -5%, color-mix(in oklch, var(--gold) 22%, transparent) 0px, transparent 55%),
+      radial-gradient(at 85% 105%, color-mix(in oklch, var(--wood) 14%, transparent) 0px, transparent 55%),
+      radial-gradient(circle at 50% 50%, color-mix(in oklch, var(--cream) 30%, transparent) 0px, transparent 70%);
   }
   .text-gold { color: var(--gold); }
+  .shadow-elegant { box-shadow: 0 1px 2px color-mix(in oklch, var(--wood) 6%, transparent), 0 8px 24px -12px color-mix(in oklch, var(--wood) 18%, transparent); }
+  .shadow-soft { box-shadow: 0 1px 2px color-mix(in oklch, var(--wood) 5%, transparent), 0 4px 14px -10px color-mix(in oklch, var(--wood) 12%, transparent); }
+  .divider-gold { background: linear-gradient(90deg, transparent, color-mix(in oklch, var(--gold) 50%, transparent), transparent); }
+}
+
+@layer base {
+  /* Slightly more comfortable input/button heights */
+  input, textarea, select { font-size: 0.95rem; }
 }
