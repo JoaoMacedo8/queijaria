@@ -48,7 +48,7 @@ function Dashboard() {
     <div className="max-w-6xl mx-auto space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <p className="text-sm text-muted-foreground italic">Bem-vindo de volta</p>
+          <p className="text-sm text-muted-foreground italic">Bem-vindo à Queijaria</p>
           <h1 className="text-3xl md:text-4xl font-display font-semibold text-primary">Dashboard</h1>
         </div>
         <Button asChild className="bg-primary hover:bg-primary/90">
