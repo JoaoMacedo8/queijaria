@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
+import logoQueijaria from "@/assets/logo-queijaria.png";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -48,9 +49,11 @@ function LoginPage() {
         className="w-full max-w-md"
       >
         <div className="text-center mb-8">
-          <div className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-accent/30 border border-accent mb-4">
-            <span className="font-display text-2xl text-primary">Q</span>
-          </div>
+          <img
+            src={logoQueijaria}
+            alt="Logotipo Queijaria Serra d'Padrela"
+            className="mx-auto mb-4 h-32 w-32 sm:h-40 sm:w-40 object-contain drop-shadow-sm"
+          />
           <h1 className="text-3xl font-display font-semibold text-primary">Queijaria</h1>
           <p className="text-sm text-muted-foreground mt-1 italic">Gestão artesanal de encomendas</p>
         </div>
