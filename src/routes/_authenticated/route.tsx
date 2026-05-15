@@ -4,6 +4,7 @@ import { LayoutDashboard, ClipboardList, Package, LogOut, Menu } from "lucide-re
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import logoQueijaria from "@/assets/logo-queijaria.png";
 
 export const Route = createFileRoute("/_authenticated")({
   component: AuthLayout,
@@ -59,9 +60,11 @@ function AuthLayout() {
       {/* Desktop sidebar */}
       <aside className="hidden md:flex w-72 flex-col border-r border-border/70 bg-card/70 backdrop-blur-md p-6">
         <div className="flex items-center gap-3 mb-10">
-          <div className="h-11 w-11 rounded-full bg-gradient-to-br from-accent/40 to-accent/10 border border-accent/60 flex items-center justify-center shadow-soft">
-            <span className="font-display text-lg text-primary">Q</span>
-          </div>
+          <img
+            src={logoQueijaria}
+            alt="Queijaria"
+            className="h-12 w-12 object-contain drop-shadow-sm"
+          />
           <div>
             <div className="font-display text-lg font-semibold text-primary leading-tight">Queijaria</div>
             <div className="text-xs text-muted-foreground italic tracking-wide">Gestão artesanal</div>
@@ -80,9 +83,11 @@ function AuthLayout() {
       {/* Mobile header */}
       <header className="md:hidden fixed top-0 inset-x-0 z-30 bg-card/85 backdrop-blur-md border-b border-border/70 px-4 py-3 flex items-center justify-between shadow-soft">
         <div className="flex items-center gap-2.5">
-          <div className="h-9 w-9 rounded-full bg-gradient-to-br from-accent/40 to-accent/10 border border-accent/60 flex items-center justify-center">
-            <span className="font-display text-sm text-primary">Q</span>
-          </div>
+          <img
+            src={logoQueijaria}
+            alt="Queijaria"
+            className="h-10 w-10 object-contain"
+          />
           <div className="leading-tight">
             <div className="font-display font-semibold text-primary text-sm">Queijaria</div>
             <div className="text-[10px] text-muted-foreground italic">Gestão artesanal</div>
