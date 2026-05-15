@@ -206,9 +206,7 @@ function EncomendasPage() {
                       <td className="px-5 py-4 font-display text-primary">{formatCurrency(Number(o.total_price))}</td>
                       <td className="px-5 py-4 text-muted-foreground whitespace-nowrap">{formatDate(o.delivery_date)}</td>
                       <td className="px-5 py-4">
-                        <span className={`text-xs px-2.5 py-1 rounded-full border ${STATUS_COLORS[o.status]}`}>
-                          {STATUS_LABEL[o.status]}
-                        </span>
+                        <StatusBadgeSelect order={o} />
                       </td>
                       <td className="px-4 py-3 text-right whitespace-nowrap">
                         <Button variant="ghost" size="icon" onClick={() => openEdit(o)}><Pencil className="h-4 w-4" /></Button>
