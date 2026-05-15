@@ -53,13 +53,13 @@ function ProdutosPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <p className="text-sm text-muted-foreground italic">Catálogo</p>
-          <h1 className="text-3xl md:text-4xl font-display font-semibold text-primary">Produtos</h1>
+          <p className="text-sm text-muted-foreground italic tracking-wide">Catálogo</p>
+          <h1 className="text-3xl md:text-4xl font-display font-semibold text-primary mt-1">Produtos</h1>
         </div>
-        <Button onClick={openNew} className="bg-primary hover:bg-primary/90">
+        <Button size="lg" onClick={openNew} className="bg-primary hover:bg-primary/90 shadow-soft">
           <Plus className="h-4 w-4 mr-1.5" /> Novo produto
         </Button>
       </div>
@@ -94,28 +94,28 @@ function ProdutosPage() {
             ))}
           </div>
 
-          <Card className="hidden md:block overflow-hidden">
+          <Card className="hidden md:block overflow-hidden shadow-elegant border-border/60">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-muted/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                <thead className="bg-muted/50 text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border/70">
                   <tr>
-                    <th className="px-4 py-3">Nome</th>
-                    <th className="px-4 py-3">Descrição</th>
-                    <th className="px-4 py-3">Preço</th>
-                    <th className="px-4 py-3">Stock</th>
-                    <th className="px-4 py-3">Estado</th>
-                    <th className="px-4 py-3"></th>
+                    <th className="px-5 py-4 font-medium">Nome</th>
+                    <th className="px-5 py-4 font-medium">Descrição</th>
+                    <th className="px-5 py-4 font-medium">Preço</th>
+                    <th className="px-5 py-4 font-medium">Stock</th>
+                    <th className="px-5 py-4 font-medium">Estado</th>
+                    <th className="px-5 py-4"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border">
+                <tbody className="divide-y divide-border/50">
                   {products.map((p) => (
-                    <tr key={p.id} className="hover:bg-muted/30">
-                      <td className="px-4 py-3 font-medium">{p.name}</td>
-                      <td className="px-4 py-3 text-muted-foreground max-w-md truncate">{p.description ?? "—"}</td>
-                      <td className="px-4 py-3 font-display text-primary">{formatCurrency(Number(p.price))}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{Number(p.stock)}</td>
-                      <td className="px-4 py-3">
-                        <span className={`text-xs px-2 py-0.5 rounded-full border ${p.active ? "bg-emerald-100 text-emerald-900 border-emerald-200" : "bg-muted text-muted-foreground"}`}>
+                    <tr key={p.id} className="hover:bg-accent/10 transition-colors">
+                      <td className="px-5 py-4 font-medium">{p.name}</td>
+                      <td className="px-5 py-4 text-muted-foreground max-w-md truncate">{p.description ?? "—"}</td>
+                      <td className="px-5 py-4 font-display text-primary">{formatCurrency(Number(p.price))}</td>
+                      <td className="px-5 py-4 text-muted-foreground">{Number(p.stock)}</td>
+                      <td className="px-5 py-4">
+                        <span className={`text-xs px-2.5 py-1 rounded-full border ${p.active ? "bg-emerald-100 text-emerald-900 border-emerald-200" : "bg-muted text-muted-foreground"}`}>
                           {p.active ? "Ativo" : "Inativo"}
                         </span>
                       </td>

@@ -78,26 +78,26 @@ function EncomendasPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <p className="text-sm text-muted-foreground italic">Histórico completo</p>
-          <h1 className="text-3xl md:text-4xl font-display font-semibold text-primary">Encomendas</h1>
+          <p className="text-sm text-muted-foreground italic tracking-wide">Histórico completo</p>
+          <h1 className="text-3xl md:text-4xl font-display font-semibold text-primary mt-1">Encomendas</h1>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" onClick={() => exportPDF(filtered)} disabled={!filtered.length}>
+          <Button variant="outline" size="lg" onClick={() => exportPDF(filtered)} disabled={!filtered.length}>
             <FileDown className="h-4 w-4 mr-1.5" /> PDF
           </Button>
-          <Button variant="outline" onClick={() => exportExcel(filtered)} disabled={!filtered.length}>
+          <Button variant="outline" size="lg" onClick={() => exportExcel(filtered)} disabled={!filtered.length}>
             <FileSpreadsheet className="h-4 w-4 mr-1.5" /> Excel
           </Button>
-          <Button onClick={openNew} className="bg-primary hover:bg-primary/90">
+          <Button size="lg" onClick={openNew} className="bg-primary hover:bg-primary/90 shadow-soft">
             <Plus className="h-4 w-4 mr-1.5" /> Nova
           </Button>
         </div>
       </div>
 
-      <Card className="p-4">
+      <Card className="p-4 md:p-5 shadow-soft border-border/60">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -160,30 +160,30 @@ function EncomendasPage() {
           </div>
 
           {/* Desktop table */}
-          <Card className="hidden md:block overflow-hidden">
+          <Card className="hidden md:block overflow-hidden shadow-elegant border-border/60">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-muted/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                <thead className="bg-muted/50 text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border/70">
                   <tr>
-                    <th className="px-4 py-3">Cliente</th>
-                    <th className="px-4 py-3">Telefone</th>
-                    <th className="px-4 py-3">Produtos</th>
-                    <th className="px-4 py-3">Total</th>
-                    <th className="px-4 py-3">Entrega</th>
-                    <th className="px-4 py-3">Estado</th>
-                    <th className="px-4 py-3"></th>
+                    <th className="px-5 py-4 font-medium">Cliente</th>
+                    <th className="px-5 py-4 font-medium">Telefone</th>
+                    <th className="px-5 py-4 font-medium">Produtos</th>
+                    <th className="px-5 py-4 font-medium">Total</th>
+                    <th className="px-5 py-4 font-medium">Entrega</th>
+                    <th className="px-5 py-4 font-medium">Estado</th>
+                    <th className="px-5 py-4"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border">
+                <tbody className="divide-y divide-border/50">
                   {filtered.map((o) => (
-                    <tr key={o.id} className="hover:bg-muted/30">
-                      <td className="px-4 py-3 font-medium">{o.customer_name}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{o.phone}</td>
-                      <td className="px-4 py-3 max-w-xs truncate text-muted-foreground">{o.products}</td>
-                      <td className="px-4 py-3 font-display text-primary">{formatCurrency(Number(o.total_price))}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{formatDate(o.delivery_date)}</td>
-                      <td className="px-4 py-3">
-                        <span className={`text-xs px-2 py-0.5 rounded-full border ${STATUS_COLORS[o.status]}`}>
+                    <tr key={o.id} className="hover:bg-accent/10 transition-colors">
+                      <td className="px-5 py-4 font-medium">{o.customer_name}</td>
+                      <td className="px-5 py-4 text-muted-foreground">{o.phone}</td>
+                      <td className="px-5 py-4 max-w-xs truncate text-muted-foreground">{o.products}</td>
+                      <td className="px-5 py-4 font-display text-primary">{formatCurrency(Number(o.total_price))}</td>
+                      <td className="px-5 py-4 text-muted-foreground whitespace-nowrap">{formatDate(o.delivery_date)}</td>
+                      <td className="px-5 py-4">
+                        <span className={`text-xs px-2.5 py-1 rounded-full border ${STATUS_COLORS[o.status]}`}>
                           {STATUS_LABEL[o.status]}
                         </span>
                       </td>
