@@ -53,13 +53,13 @@ function ProdutosPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <p className="text-sm text-muted-foreground italic">Catálogo</p>
-          <h1 className="text-3xl md:text-4xl font-display font-semibold text-primary">Produtos</h1>
+          <p className="text-sm text-muted-foreground italic tracking-wide">Catálogo</p>
+          <h1 className="text-3xl md:text-4xl font-display font-semibold text-primary mt-1">Produtos</h1>
         </div>
-        <Button onClick={openNew} className="bg-primary hover:bg-primary/90">
+        <Button size="lg" onClick={openNew} className="bg-primary hover:bg-primary/90 shadow-soft">
           <Plus className="h-4 w-4 mr-1.5" /> Novo produto
         </Button>
       </div>
