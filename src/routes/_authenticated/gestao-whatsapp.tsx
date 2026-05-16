@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   MessageCircle, Check, X, Clock, CheckCircle2, XCircle, Phone, Plus, Layers, Loader2,
+  Minus, Sparkles, Package, ChevronsUpDown,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,9 +13,14 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
+} from "@/components/ui/command";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/lib/orders";
+import type { Product } from "@/lib/products";
 
 export const Route = createFileRoute("/_authenticated/gestao-whatsapp")({
   component: GestaoWhatsAppPage,
