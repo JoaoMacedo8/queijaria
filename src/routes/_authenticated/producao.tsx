@@ -110,7 +110,7 @@ function ProducaoPage() {
       const { data, error } = await supabase
         .from("orders")
         .select("*")
-        .in("status", PRODUCTION_STATUSES as unknown as string[]);
+        .in("status", PRODUCTION_STATUSES);
       if (error) toast.error(error.message);
       else setOrders(data ?? []);
       setLoading(false);
