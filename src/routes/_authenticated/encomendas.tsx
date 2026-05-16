@@ -12,6 +12,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { OrderDialog } from "@/components/OrderDialog";
+import { OrderDetailsSheet } from "@/components/OrderDetailsSheet";
 import { STATUS_OPTIONS, STATUS_LABEL, formatCurrency, formatDate, type Order, type OrderStatus } from "@/lib/orders";
 import { exportPDF, exportExcel } from "@/lib/export";
 import { toast } from "sonner";
@@ -99,6 +100,11 @@ function EncomendasPage() {
   const [editing, setEditing] = useState<Order | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [detailsOrder, setDetailsOrder] = useState<Order | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+
+  const openDetails = (o: Order) => { setDetailsOrder(o); setDetailsOpen(true); };
+  const stop = (e: React.MouseEvent) => e.stopPropagation();
 
   useEffect(() => {
     if (searchParams.status) setStatusFilter(searchParams.status);
@@ -228,8 +234,8 @@ function EncomendasPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.02 }}
               >
-                <Card className="p-4">
-                  <div className="flex justify-between gap-2 mb-2">
+                <Card className="p-4 cursor-pointer hover:shadow-elegant transition-shadow" onClick={() => openDetails(o)}>
+                  <div className="flex justify-between gap-2 mb-2" onClick={stop}>
                     <div className="font-medium truncate">{o.customer_name}</div>
                     <StatusBadgeSelect order={o} />
                   </div>
@@ -240,7 +246,7 @@ function EncomendasPage() {
                   </div>
                   <div className="flex justify-between items-center">
                     <div className="font-display text-lg text-primary">{formatCurrency(Number(o.total_price))}</div>
-                    <div className="flex gap-1">
+                    <div className="flex gap-1" onClick={stop}>
                       <WhatsAppButton order={o} />
                       <Button variant="ghost" size="icon" onClick={() => openEdit(o)}><Pencil className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="icon" onClick={() => setDeleteId(o.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
@@ -268,16 +274,16 @@ function EncomendasPage() {
                 </thead>
                 <tbody className="divide-y divide-border/50">
                   {filtered.map((o) => (
-                    <tr key={o.id} className="hover:bg-accent/10 transition-colors">
+                    <tr key={o.id} onClick={() => openDetails(o)} className="hover:bg-accent/10 transition-colors cursor-pointer">
                       <td className="px-5 py-4 font-medium">{o.customer_name}</td>
                       <td className="px-5 py-4 text-muted-foreground">{o.phone}</td>
                       <td className="px-5 py-4 max-w-xs truncate text-muted-foreground">{o.products}</td>
                       <td className="px-5 py-4 font-display text-primary">{formatCurrency(Number(o.total_price))}</td>
                       <td className="px-5 py-4 text-muted-foreground whitespace-nowrap">{formatDate(o.delivery_date)}</td>
-                      <td className="px-5 py-4">
+                      <td className="px-5 py-4" onClick={stop}>
                         <StatusBadgeSelect order={o} />
                       </td>
-                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                      <td className="px-4 py-3 text-right whitespace-nowrap" onClick={stop}>
                         <WhatsAppButton order={o} />
                         <Button variant="ghost" size="icon" onClick={() => openEdit(o)}><Pencil className="h-4 w-4" /></Button>
                         <Button variant="ghost" size="icon" onClick={() => setDeleteId(o.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
@@ -294,6 +300,13 @@ function EncomendasPage() {
       {dialogOpen && (
         <OrderDialog open={dialogOpen} onOpenChange={setDialogOpen} order={editing} />
       )}
+
+      <OrderDetailsSheet
+        order={detailsOrder}
+        open={detailsOpen}
+        onOpenChange={setDetailsOpen}
+        onEdit={openEdit}
+      />
 
       <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
         <AlertDialogContent>
