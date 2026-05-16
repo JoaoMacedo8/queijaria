@@ -55,7 +55,7 @@ function LoginPage() {
             className="mx-auto mb-4 h-32 w-32 sm:h-40 sm:w-40 object-contain drop-shadow-sm"
           />
           <h1 className="text-3xl font-display font-semibold text-primary">Queijaria</h1>
-          <p className="text-sm text-muted-foreground mt-1 italic">Gestão artesanal de encomendas</p>
+          <p className="text-sm text-muted-foreground mt-1 italic">Gestão artesanal de encomendas •</p>
         </div>
 
         <Card className="p-6 shadow-lg border-border/60">
