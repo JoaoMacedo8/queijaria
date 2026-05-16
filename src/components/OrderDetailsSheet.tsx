@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Pencil, Printer, MessageCircle, User, Phone, Calendar, Package, StickyNote, X } from "lucide-react";
-import { STATUS_OPTIONS, STATUS_LABEL, formatCurrency, formatDate, type Order, type OrderStatus } from "@/lib/orders";
+import { STATUS_OPTIONS, STATUS_LABEL, formatCurrency, formatDate, parseOrderItems, type Order, type OrderStatus } from "@/lib/orders";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -15,24 +15,6 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
   entregue: "bg-green-800/15 text-green-900 border-green-800/30",
   cancelada: "bg-rose-100 text-rose-900 border-rose-200",
 };
-
-function parseProducts(text: string): { name: string; qty?: number; price?: number }[] {
-  if (!text) return [];
-  return text.split(/\n|;|,/).map((l) => l.trim()).filter(Boolean).map((line) => {
-    // matches "2x Queijo Curado - 10,50€" or "Queijo 12€"
-    const qtyM = line.match(/^(\d+)\s*[x×]\s*/i);
-    const priceM = line.match(/(\d+[.,]?\d*)\s*€/);
-    const name = line
-      .replace(/^(\d+)\s*[x×]\s*/i, "")
-      .replace(/[-–|]?\s*(\d+[.,]?\d*)\s*€.*$/, "")
-      .trim();
-    return {
-      name: name || line,
-      qty: qtyM ? Number(qtyM[1]) : undefined,
-      price: priceM ? Number(priceM[1].replace(",", ".")) : undefined,
-    };
-  });
-}
 
 function normalizePhonePT(raw: string): string {
   let p = (raw || "").replace(/\D/g, "");
@@ -53,7 +35,7 @@ interface Props {
 export function OrderDetailsSheet({ order, open, onOpenChange, onEdit }: Props) {
   if (!order) return null;
 
-  const items = parseProducts(order.products);
+  const items = parseOrderItems(order.products, Number(order.quantity) || 1);
   const total = Number(order.total_price);
 
   const updateStatus = async (status: OrderStatus) => {
