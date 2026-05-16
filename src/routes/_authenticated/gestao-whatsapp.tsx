@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { MessageCircle, Check, X, Clock, CheckCircle2, XCircle, Phone, Plus } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  MessageCircle, Check, X, Clock, CheckCircle2, XCircle, Phone, Plus, Layers, Loader2,
+} from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,93 +13,171 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { formatCurrency } from "@/lib/orders";
 
 export const Route = createFileRoute("/_authenticated/gestao-whatsapp")({
   component: GestaoWhatsAppPage,
 });
 
-type WhatsOrder = {
+/* ============================== Types ============================== */
+
+type WhatsStatus = "pending" | "approved" | "rejected" | "converted";
+
+type WhatsPending = {
   id: string;
-  cliente: string;
-  telefone: string;
-  resumo: string;
-  total: number;
-  mensagem: string;
-  recebidoEm: string;
+  customer_name: string;
+  phone: string;
+  original_message: string;
+  detected_products: string;
+  estimated_total: number;
+  status: WhatsStatus;
+  created_at: string;
 };
 
-const MOCK_ORDERS: WhatsOrder[] = [
-  {
-    id: "w1",
-    cliente: "Carlos Antunes",
-    telefone: "+351 912 345 678",
-    resumo: "2x Queijo Amanteigado, 1x Requeijão Caseiro",
-    total: 22.8,
-    mensagem:
-      "Boa tarde! Queria encomendar dois queijos amanteigados e um requeijão para levantar na sexta-feira de manhã, é possível? Obrigado.",
-    recebidoEm: "Hoje, 10:24",
-  },
-  {
-    id: "w2",
-    cliente: "Sofia Marques",
-    telefone: "+351 936 778 221",
-    resumo: "1x Queijo Curado Tradicional, 3x Queijo Fresco",
-    total: 26.0,
-    mensagem:
-      "Olá, gostava de encomendar um queijo curado e três queijos frescos. Entrega em Braga se possível 🙏",
-    recebidoEm: "Hoje, 09:12",
-  },
-];
+type FilterKey = "all" | "pending" | "approved" | "rejected";
 
-function formatCurrency(n: number) {
-  return new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(n);
+/* ============================== Helpers ============================== */
+
+function formatReceivedAt(iso: string) {
+  const d = new Date(iso);
+  const today = new Date();
+  const sameDay = d.toDateString() === today.toDateString();
+  const time = d.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" });
+  return sameDay ? `Hoje, ${time}` : `${d.toLocaleDateString("pt-PT")} ${time}`;
 }
 
+/** Insert/convert a pending WhatsApp order into the official `orders` table. */
+async function convertToOfficialOrder(p: WhatsPending) {
+  const { error } = await supabase.from("orders").insert({
+    customer_name: p.customer_name,
+    phone: p.phone,
+    address: "",
+    products: p.detected_products || "—",
+    quantity: 1,
+    total_price: p.estimated_total ?? 0,
+    notes: `Importada do WhatsApp:\n${p.original_message}`,
+    status: "pendente",
+  });
+  if (error) throw error;
+}
+
+/* ============================== Page ============================== */
+
 function GestaoWhatsAppPage() {
-  const [orders, setOrders] = useState<WhatsOrder[]>(MOCK_ORDERS);
-  const [aprovadas, setAprovadas] = useState(5);
-  const [rejeitadas, setRejeitadas] = useState(1);
+  const [items, setItems] = useState<WhatsPending[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<FilterKey>("pending");
+  const [actingId, setActingId] = useState<string | null>(null);
   const [simOpen, setSimOpen] = useState(false);
   const [form, setForm] = useState({ cliente: "", telefone: "", mensagem: "", total: "", produtos: "" });
-
   const resetForm = () => setForm({ cliente: "", telefone: "", mensagem: "", total: "", produtos: "" });
 
-  const inserirSimulacao = () => {
+  /* ---------- load + realtime ---------- */
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      const { data, error } = await supabase
+        .from("whatsapp_pending_orders")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (!mounted) return;
+      if (error) toast.error(error.message);
+      else setItems((data ?? []) as WhatsPending[]);
+      setLoading(false);
+    };
+    load();
+
+    const ch = supabase
+      .channel("whatsapp-pending")
+      .on("postgres_changes", { event: "*", schema: "public", table: "whatsapp_pending_orders" }, load)
+      .subscribe();
+    return () => { mounted = false; supabase.removeChannel(ch); };
+  }, []);
+
+  /* ---------- counters ---------- */
+  const counts = useMemo(() => {
+    const todayStr = new Date().toDateString();
+    const isToday = (iso: string) => new Date(iso).toDateString() === todayStr;
+    return {
+      all: items.length,
+      pending: items.filter((i) => i.status === "pending").length,
+      approved: items.filter((i) => (i.status === "approved" || i.status === "converted") && isToday(i.created_at)).length,
+      rejected: items.filter((i) => i.status === "rejected").length,
+    };
+  }, [items]);
+
+  /* ---------- filtered list ---------- */
+  const visible = useMemo(() => {
+    if (filter === "all") return items;
+    if (filter === "approved") return items.filter((i) => i.status === "approved" || i.status === "converted");
+    return items.filter((i) => i.status === filter);
+  }, [items, filter]);
+
+  /* ---------- actions ---------- */
+  const aceitar = async (o: WhatsPending) => {
+    setActingId(o.id);
+    // optimistic remove from pending view
+    const prev = items;
+    setItems((curr) => curr.map((i) => (i.id === o.id ? { ...i, status: "converted" } : i)));
+    try {
+      await convertToOfficialOrder(o);
+      const { error } = await supabase
+        .from("whatsapp_pending_orders")
+        .update({ status: "converted" })
+        .eq("id", o.id);
+      if (error) throw error;
+      toast.success("Encomenda adicionada com sucesso");
+    } catch (e: any) {
+      setItems(prev);
+      toast.error(e?.message ?? "Falha ao aceitar encomenda");
+    } finally {
+      setActingId(null);
+    }
+  };
+
+  const rejeitar = async (o: WhatsPending) => {
+    setActingId(o.id);
+    const prev = items;
+    setItems((curr) => curr.map((i) => (i.id === o.id ? { ...i, status: "rejected" } : i)));
+    const { error } = await supabase
+      .from("whatsapp_pending_orders")
+      .update({ status: "rejected" })
+      .eq("id", o.id);
+    if (error) {
+      setItems(prev);
+      toast.error(error.message);
+    } else {
+      toast.message("Encomenda rejeitada");
+    }
+    setActingId(null);
+  };
+
+  const inserirSimulacao = async () => {
     if (!form.cliente.trim() || !form.telefone.trim() || !form.mensagem.trim()) {
       toast.error("Preencha cliente, telefone e mensagem");
       return;
     }
-    const novo: WhatsOrder = {
-      id: `sim-${Date.now()}`,
-      cliente: form.cliente.trim(),
-      telefone: form.telefone.trim(),
-      resumo: form.produtos.trim() || "—",
-      total: Number(form.total.replace(",", ".")) || 0,
-      mensagem: form.mensagem.trim(),
-      recebidoEm: "Agora",
-    };
-    setOrders((prev) => [novo, ...prev]);
+    const { error } = await supabase.from("whatsapp_pending_orders").insert({
+      customer_name: form.cliente.trim(),
+      phone: form.telefone.trim(),
+      original_message: form.mensagem.trim(),
+      detected_products: form.produtos.trim() || "—",
+      estimated_total: Number(form.total.replace(",", ".")) || 0,
+      status: "pending",
+    });
+    if (error) { toast.error(error.message); return; }
     toast.success("Mensagem simulada inserida");
     resetForm();
     setSimOpen(false);
   };
 
-  const aceitar = (o: WhatsOrder) => {
-    setOrders((prev) => prev.filter((x) => x.id !== o.id));
-    setAprovadas((n) => n + 1);
-    toast.success(`Encomenda de ${o.cliente} aceite`);
-  };
-
-  const rejeitar = (o: WhatsOrder) => {
-    setOrders((prev) => prev.filter((x) => x.id !== o.id));
-    setRejeitadas((n) => n + 1);
-    toast.message(`Encomenda de ${o.cliente} rejeitada`);
-  };
-
-  const stats = [
-    { label: "Pendentes de Validação", value: orders.length, icon: Clock, tone: "bg-amber-100/70 text-amber-900 border-amber-200" },
-    { label: "Aprovadas Hoje", value: aprovadas, icon: CheckCircle2, tone: "bg-emerald-100 text-emerald-900 border-emerald-200" },
-    { label: "Rejeitadas", value: rejeitadas, icon: XCircle, tone: "bg-rose-100 text-rose-900 border-rose-200" },
+  /* ---------- stat cards config ---------- */
+  const cards: { key: FilterKey; label: string; value: number; icon: any; tone: string; ring: string }[] = [
+    { key: "pending",  label: "Pendentes de Validação", value: counts.pending,  icon: Clock,        tone: "bg-amber-100/70 text-amber-900 border-amber-200",   ring: "ring-amber-300" },
+    { key: "approved", label: "Aprovadas Hoje",         value: counts.approved, icon: CheckCircle2, tone: "bg-emerald-100 text-emerald-900 border-emerald-200", ring: "ring-emerald-300" },
+    { key: "rejected", label: "Rejeitadas",             value: counts.rejected, icon: XCircle,      tone: "bg-rose-100 text-rose-900 border-rose-200",         ring: "ring-rose-300" },
+    { key: "all",      label: "Todas",                  value: counts.all,      icon: Layers,       tone: "bg-stone-100 text-stone-900 border-stone-200",       ring: "ring-stone-300" },
   ];
 
   return (
@@ -121,89 +201,80 @@ function GestaoWhatsAppPage() {
         </Button>
       </header>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        {stats.map((s) => (
-          <Card key={s.label} className="p-4 bg-card/70 backdrop-blur-sm border-border/70 shadow-soft">
-            <div className="flex items-center gap-3">
-              <div className={`h-10 w-10 rounded-xl border flex items-center justify-center ${s.tone}`}>
-                <s.icon className="h-5 w-5" />
-              </div>
-              <div>
-                <div className="text-xs uppercase tracking-wide text-muted-foreground">{s.label}</div>
-                <div className="font-display text-2xl font-semibold text-primary leading-tight">{s.value}</div>
-              </div>
-            </div>
-          </Card>
-        ))}
+      {/* Stat cards (clickable filters) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {cards.map((c) => {
+          const active = filter === c.key;
+          return (
+            <motion.button
+              key={c.key}
+              type="button"
+              onClick={() => setFilter(c.key)}
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.98 }}
+              className={`text-left rounded-lg transition-all focus:outline-none ${active ? `ring-2 ${c.ring} ring-offset-2 ring-offset-background` : ""}`}
+            >
+              <Card className={`p-4 bg-card/70 backdrop-blur-sm border-border/70 shadow-soft transition-shadow ${active ? "shadow-elegant" : "hover:shadow-elegant"}`}>
+                <div className="flex items-center gap-3">
+                  <div className={`h-10 w-10 rounded-xl border flex items-center justify-center ${c.tone}`}>
+                    <c.icon className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="text-xs uppercase tracking-wide text-muted-foreground">{c.label}</div>
+                    <div className="font-display text-2xl font-semibold text-primary leading-tight">{c.value}</div>
+                  </div>
+                </div>
+              </Card>
+            </motion.button>
+          );
+        })}
       </div>
 
-      {orders.length === 0 ? (
+      {/* List */}
+      {loading ? (
+        <Card className="p-10 text-center bg-card/70 backdrop-blur-sm border-border/70 shadow-soft">
+          <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+        </Card>
+      ) : visible.length === 0 ? (
         <Card className="p-10 bg-card/70 backdrop-blur-sm border-border/70 shadow-soft text-center">
           <div className="mx-auto h-14 w-14 rounded-full bg-muted/60 flex items-center justify-center mb-4">
             <MessageCircle className="h-6 w-6 text-muted-foreground" />
           </div>
-          <h2 className="font-display text-lg text-primary mb-1">Sem encomendas pendentes</h2>
-          <p className="text-sm text-muted-foreground">Todas as encomendas recebidas foram processadas.</p>
+          <h2 className="font-display text-lg text-primary mb-1">
+            {filter === "pending" ? "Sem encomendas pendentes" : "Sem registos para este filtro"}
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {filter === "pending"
+              ? "Todas as encomendas recebidas foram processadas."
+              : "Altera o filtro para ver outros registos."}
+          </p>
         </Card>
       ) : (
         <div className="flex flex-col gap-4">
-          {orders.map((o, i) => (
-            <motion.div key={o.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-              <Card className="p-5 bg-card/70 backdrop-blur-sm border-border/70 shadow-soft">
-                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-1">
-                      <h3 className="font-display text-lg font-semibold text-primary">{o.cliente}</h3>
-                      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                        <Phone className="h-3 w-3" />
-                        {o.telefone}
-                      </span>
-                      <span className="text-xs text-muted-foreground italic">• {o.recebidoEm}</span>
-                    </div>
-
-                    <p className="text-sm text-foreground/90 mb-3">{o.resumo}</p>
-
-                    <div className="relative inline-block max-w-xl">
-                      <div className="rounded-2xl rounded-tl-sm bg-emerald-50 border border-emerald-100 px-4 py-2.5 text-sm text-emerald-950 shadow-sm">
-                        <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-emerald-700/80 mb-1">
-                          <MessageCircle className="h-3 w-3" />
-                          Mensagem original
-                        </div>
-                        {o.mensagem}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex md:flex-col md:items-end items-center justify-between gap-3 md:min-w-[200px]">
-                    <div className="text-right">
-                      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Total estimado</div>
-                      <div className="font-display text-xl font-semibold text-primary">{formatCurrency(o.total)}</div>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <Button size="sm" onClick={() => aceitar(o)} className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm">
-                        <Check className="h-4 w-4 mr-1.5" />
-                        Aceitar
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => rejeitar(o)} className="border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-800">
-                        <X className="h-4 w-4 mr-1.5" />
-                        Rejeitar
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
-          ))}
+          <AnimatePresence initial={false}>
+            {visible.map((o, i) => (
+              <motion.div
+                key={o.id}
+                layout
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ delay: i * 0.03 }}
+              >
+                <PendingCard order={o} acting={actingId === o.id} onAccept={aceitar} onReject={rejeitar} />
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
       )}
 
+      {/* Simulate dialog */}
       <Dialog open={simOpen} onOpenChange={(o) => { setSimOpen(o); if (!o) resetForm(); }}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="font-display text-primary">Simular Mensagem WhatsApp</DialogTitle>
             <DialogDescription>
-              Adiciona uma encomenda de teste à lista local de validação.
+              Adiciona uma encomenda de teste à lista de validação.
             </DialogDescription>
           </DialogHeader>
 
@@ -243,5 +314,87 @@ function GestaoWhatsAppPage() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+/* ============================== Card ============================== */
+
+const STATUS_BADGE: Record<WhatsStatus, { label: string; cls: string }> = {
+  pending:   { label: "Pendente",   cls: "bg-amber-100/70 text-amber-900 border-amber-200" },
+  approved:  { label: "Aprovada",   cls: "bg-emerald-100 text-emerald-900 border-emerald-200" },
+  converted: { label: "Convertida", cls: "bg-emerald-100 text-emerald-900 border-emerald-200" },
+  rejected:  { label: "Rejeitada",  cls: "bg-rose-100 text-rose-900 border-rose-200" },
+};
+
+function PendingCard({
+  order, acting, onAccept, onReject,
+}: {
+  order: WhatsPending;
+  acting: boolean;
+  onAccept: (o: WhatsPending) => void;
+  onReject: (o: WhatsPending) => void;
+}) {
+  const badge = STATUS_BADGE[order.status];
+  const isPending = order.status === "pending";
+  return (
+    <Card className="p-5 bg-card/70 backdrop-blur-sm border-border/70 shadow-soft">
+      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-1">
+            <h3 className="font-display text-lg font-semibold text-primary">{order.customer_name}</h3>
+            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+              <Phone className="h-3 w-3" />{order.phone}
+            </span>
+            <span className="text-xs text-muted-foreground italic">• {formatReceivedAt(order.created_at)}</span>
+            <span className={`text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full border ${badge.cls}`}>
+              {badge.label}
+            </span>
+          </div>
+
+          <p className="text-sm text-foreground/90 mb-3">{order.detected_products || "—"}</p>
+
+          <div className="relative inline-block max-w-xl">
+            <div className="rounded-2xl rounded-tl-sm bg-emerald-50 border border-emerald-100 px-4 py-2.5 text-sm text-emerald-950 shadow-sm">
+              <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-emerald-700/80 mb-1">
+                <MessageCircle className="h-3 w-3" />
+                Mensagem original
+              </div>
+              {order.original_message || "—"}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex md:flex-col md:items-end items-center justify-between gap-3 md:min-w-[200px]">
+          <div className="text-right">
+            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Total estimado</div>
+            <div className="font-display text-xl font-semibold text-primary">{formatCurrency(Number(order.estimated_total))}</div>
+          </div>
+
+          {isPending && (
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                disabled={acting}
+                onClick={() => onAccept(order)}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+              >
+                {acting ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Check className="h-4 w-4 mr-1.5" />}
+                Aceitar
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={acting}
+                onClick={() => onReject(order)}
+                className="border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-800"
+              >
+                <X className="h-4 w-4 mr-1.5" />
+                Rejeitar
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+    </Card>
   );
 }
