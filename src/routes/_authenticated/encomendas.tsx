@@ -90,14 +90,20 @@ function StatusBadgeSelect({ order }: { order: Order }) {
 }
 
 function EncomendasPage() {
+  const searchParams = Route.useSearch();
   const [orders, setOrders] = useState<Order[]>([]);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>(searchParams.status ?? "all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [editing, setEditing] = useState<Order | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (searchParams.status) setStatusFilter(searchParams.status);
+    else if (searchParams.status === undefined) setStatusFilter((s) => s);
+  }, [searchParams.status]);
 
   useEffect(() => {
     const load = async () => {
