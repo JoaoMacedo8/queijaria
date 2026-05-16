@@ -97,6 +97,7 @@ function saveProduced(p: Record<string, number>) {
 
 function ProducaoPage() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [productMap, setProductMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>("semana");
   const [from, setFrom] = useState("");
@@ -119,6 +120,21 @@ function ProducaoPage() {
     const ch = supabase
       .channel("producao-orders")
       .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, load)
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, []);
+
+  useEffect(() => {
+    const loadProducts = async () => {
+      const { data } = await supabase.from("products").select("id, name");
+      const map: Record<string, string> = {};
+      for (const p of data ?? []) map[normalizeKey(p.name)] = p.id;
+      setProductMap(map);
+    };
+    loadProducts();
+    const ch = supabase
+      .channel("producao-products")
+      .on("postgres_changes", { event: "*", schema: "public", table: "products" }, loadProducts)
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, []);
@@ -161,14 +177,50 @@ function ProducaoPage() {
     };
   }, [aggregated, produced, orders, range]);
 
-  const setProd = (key: string, value: number) => {
-    const next = { ...produced, [key]: Math.max(0, value) };
+  const setProd = async (key: string, value: number, productName?: string) => {
+    const prev = produced[key] ?? 0;
+    const clamped = Math.max(0, value);
+    const next = { ...produced, [key]: clamped };
+    setProduced(next);
+    saveProduced(next);
+
+    // Only register a production movement on positive deltas (real units produced).
+    // Negative adjustments are visual-only — use the product page for corrections.
+    const delta = clamped - prev;
+    if (delta <= 0) return;
+
+    const productId = productMap[key];
+    if (!productId) {
+      toast.warning(`Produto "${productName ?? key}" não existe no catálogo — stock não atualizado.`);
+      return;
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    const { error } = await supabase.from("stock_movements").insert({
+      product_id: productId,
+      type: "producao",
+      quantity: delta,
+      notes: `Produção registada (+${delta})`,
+      created_by: user?.id ?? null,
+    });
+    if (error) {
+      toast.error(error.message);
+      // rollback visual
+      const rollback = { ...produced, [key]: prev };
+      setProduced(rollback);
+      saveProduced(rollback);
+    } else {
+      toast.success(`+${delta} ${productName ?? ""} em stock`);
+    }
+  };
+
+  const markAll = (key: string, qty: number, name: string) => setProd(key, qty, name);
+  const reset = (key: string) => {
+    // Visual reset only — does not reverse stock already produced.
+    const next = { ...produced, [key]: 0 };
     setProduced(next);
     saveProduced(next);
   };
-
-  const markAll = (key: string, qty: number) => setProd(key, qty);
-  const reset = (key: string) => setProd(key, 0);
   const resetAll = () => { setProduced({}); saveProduced({}); toast.success("Progresso reiniciado"); };
 
   return (
@@ -295,7 +347,7 @@ function ProducaoPage() {
                         size="sm"
                         variant="outline"
                         className="h-8 px-2"
-                        onClick={() => setProd(a.key, done - 1)}
+                        onClick={() => setProd(a.key, done - 1, a.name)}
                         disabled={done === 0}
                       >−</Button>
                       <Input
@@ -303,14 +355,14 @@ function ProducaoPage() {
                         min={0}
                         max={a.qty}
                         value={done}
-                        onChange={(e) => setProd(a.key, Math.min(Number(e.target.value) || 0, a.qty))}
+                        onChange={(e) => setProd(a.key, Math.min(Number(e.target.value) || 0, a.qty), a.name)}
                         className="h-8 text-center w-16"
                       />
                       <Button
                         size="sm"
                         variant="outline"
                         className="h-8 px-2"
-                        onClick={() => setProd(a.key, Math.min(done + 1, a.qty))}
+                        onClick={() => setProd(a.key, Math.min(done + 1, a.qty), a.name)}
                         disabled={completed}
                       >+</Button>
                       {completed ? (
@@ -321,7 +373,7 @@ function ProducaoPage() {
                         <Button
                           size="sm"
                           className="h-8 ml-auto bg-primary hover:bg-primary/90"
-                          onClick={() => markAll(a.key, a.qty)}
+                          onClick={() => markAll(a.key, a.qty, a.name)}
                         >
                           <Check className="h-3.5 w-3.5 mr-1" /> Marcar produzido
                         </Button>
