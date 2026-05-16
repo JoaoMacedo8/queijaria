@@ -200,7 +200,9 @@ function ProducaoPage() {
     const delta = clamped - prev;
     if (delta <= 0) return;
 
-    const productId = productMap[key];
+    // key format: `${date}|${productKey}` — extract the product key for lookup
+    const productKey = key.includes("|") ? key.split("|").slice(1).join("|") : key;
+    const productId = productMap[productKey];
     if (!productId) {
       toast.warning(`Produto "${productName ?? key}" não existe no catálogo — stock não atualizado.`);
       return;
