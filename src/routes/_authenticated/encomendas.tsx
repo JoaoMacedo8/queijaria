@@ -17,6 +17,9 @@ import { exportPDF, exportExcel } from "@/lib/export";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/encomendas")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    status: typeof search.status === "string" ? search.status : undefined,
+  }),
   component: EncomendasPage,
 });
 
