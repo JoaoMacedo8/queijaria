@@ -47,6 +47,36 @@ export type Database = {
         }
         Relationships: []
       }
+      encomendas_whatsapp: {
+        Row: {
+          created_at: string
+          id: string
+          nome_cliente: string
+          produtos_texto: string
+          status_validacao: string
+          telefone: string
+          valor_estimado: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome_cliente: string
+          produtos_texto: string
+          status_validacao?: string
+          telefone: string
+          valor_estimado?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome_cliente?: string
+          produtos_texto?: string
+          status_validacao?: string
+          telefone?: string
+          valor_estimado?: number
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           address: string
