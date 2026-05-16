@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { OrderDialog } from "@/components/OrderDialog";
 import { OrderDetailsSheet } from "@/components/OrderDetailsSheet";
-import { STATUS_OPTIONS, STATUS_LABEL, formatCurrency, formatDate, type Order, type OrderStatus } from "@/lib/orders";
+import { STATUS_OPTIONS, STATUS_LABEL, formatCurrency, formatDate, formatOrderProducts, type Order, type OrderStatus } from "@/lib/orders";
 import { exportPDF, exportExcel } from "@/lib/export";
 import { toast } from "sonner";
 
@@ -241,7 +241,7 @@ function EncomendasPage() {
                   </div>
                   <div className="text-xs text-muted-foreground space-y-0.5 mb-3">
                     <div>{o.phone}</div>
-                    <div className="line-clamp-2">{o.products}</div>
+                     <div className="line-clamp-2">{formatOrderProducts(o)}</div>
                     <div>Entrega: {formatDate(o.delivery_date)}</div>
                   </div>
                   <div className="flex justify-between items-center">
@@ -281,7 +281,7 @@ function EncomendasPage() {
                     >
                       <td className="px-5 py-4 font-medium">{o.customer_name}</td>
                       <td className="px-5 py-4 text-muted-foreground">{o.phone}</td>
-                      <td className="px-5 py-4 max-w-xs truncate text-muted-foreground">{o.products}</td>
+                       <td className="px-5 py-4 max-w-xs truncate text-muted-foreground">{formatOrderProducts(o)}</td>
                       <td className="px-5 py-4 font-display text-primary">{formatCurrency(Number(o.total_price))}</td>
                       <td className="px-5 py-4 text-muted-foreground whitespace-nowrap">{formatDate(o.delivery_date)}</td>
                       <td className="px-5 py-4" onClick={stop}>
