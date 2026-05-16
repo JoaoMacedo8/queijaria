@@ -220,6 +220,7 @@ function EncomendasPage() {
                   <div className="flex justify-between items-center">
                     <div className="font-display text-lg text-primary">{formatCurrency(Number(o.total_price))}</div>
                     <div className="flex gap-1">
+                      <WhatsAppButton order={o} />
                       <Button variant="ghost" size="icon" onClick={() => openEdit(o)}><Pencil className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="icon" onClick={() => setDeleteId(o.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                     </div>
