@@ -102,7 +102,6 @@ function EncomendasPage() {
 
   useEffect(() => {
     if (searchParams.status) setStatusFilter(searchParams.status);
-    else if (searchParams.status === undefined) setStatusFilter((s) => s);
   }, [searchParams.status]);
 
   useEffect(() => {
