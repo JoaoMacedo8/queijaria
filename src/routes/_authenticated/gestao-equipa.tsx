@@ -2,8 +2,10 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { ShieldCheck, Check, X, Trash2, UserCog, Clock, Users as UsersIcon } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, type AccountStatus, type AppRole } from "@/lib/auth";
+import { listAllTeamUsers, type TeamUserRecord } from "@/lib/team.functions";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,29 +20,31 @@ export const Route = createFileRoute("/_authenticated/gestao-equipa")({
   component: GestaoEquipaPage,
 });
 
-type ProfileRow = {
-  id: string;
-  email: string | null;
-  display_name: string | null;
-  name: string | null;
-  status: AccountStatus;
-  created_at: string;
-};
-type TeamMember = ProfileRow & { role: AppRole };
+type TeamMember = TeamUserRecord;
+type ExtendedStatus = AccountStatus | "removed";
 
-const statusLabels: Record<AccountStatus, string> = {
+const statusLabels: Record<ExtendedStatus, string> = {
   pending: "Pendente",
   approved: "Aprovado",
   rejected: "Rejeitado",
   blocked: "Bloqueado",
+  removed: "Removido",
 };
 
-const statusStyles: Record<AccountStatus, string> = {
+const statusStyles: Record<ExtendedStatus, string> = {
   pending: "bg-amber-100 text-amber-900 border-amber-200",
   approved: "bg-emerald-100 text-emerald-900 border-emerald-200",
   rejected: "bg-rose-100 text-rose-900 border-rose-200",
   blocked: "bg-zinc-200 text-zinc-800 border-zinc-300",
+  removed: "bg-stone-200 text-stone-700 border-stone-300",
 };
+
+function formatDateTime(iso: string | null) {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleString("pt-PT", { dateStyle: "short", timeStyle: "short" });
+  } catch { return "—"; }
+}
 
 function GestaoEquipaPage() {
   const navigate = useNavigate();
@@ -48,6 +52,7 @@ function GestaoEquipaPage() {
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const [fetching, setFetching] = useState(true);
+  const fetchTeam = useServerFn(listAllTeamUsers);
 
   useEffect(() => {
     if (!loading && !isAdmin) navigate({ to: "/dashboard" });
@@ -55,27 +60,15 @@ function GestaoEquipaPage() {
 
   const load = useCallback(async () => {
     setFetching(true);
-    const [{ data: profs, error: e1 }, { data: roles, error: e2 }] = await Promise.all([
-      supabase.from("profiles").select("id, email, display_name, name, status, created_at").order("created_at", { ascending: false }),
-      supabase.from("user_roles").select("user_id, role"),
-    ]);
-    if (e1 || e2) {
-      toast.error("Erro ao carregar utilizadores");
+    try {
+      const res = await fetchTeam({ data: {} });
+      setMembers(res.users as TeamMember[]);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao carregar utilizadores");
+    } finally {
       setFetching(false);
-      return;
     }
-    const roleMap = new Map<string, AppRole>();
-    ((roles ?? []) as { user_id: string; role: AppRole }[]).forEach((r) => {
-      const prev = roleMap.get(r.user_id);
-      if (prev !== "admin") roleMap.set(r.user_id, r.role);
-    });
-    const list = ((profs ?? []) as ProfileRow[]).map((p) => ({
-      ...p,
-      role: roleMap.get(p.id) ?? "employee",
-    }));
-    setMembers(list);
-    setFetching(false);
-  }, []);
+  }, [fetchTeam]);
 
   useEffect(() => { if (isAdmin) load(); }, [isAdmin, load]);
 
@@ -113,7 +106,8 @@ function GestaoEquipaPage() {
 
   const pending = members.filter((m) => m.status === "pending");
   const active = members.filter((m) => m.status === "approved");
-  const others = members.filter((m) => m.status === "rejected" || m.status === "blocked");
+  const rejected = members.filter((m) => m.status === "rejected" || m.status === "blocked");
+  const removed = members.filter((m) => m.status === "removed");
 
   const Row = ({ m }: { m: TeamMember }) => (
     <motion.div
@@ -129,8 +123,9 @@ function GestaoEquipaPage() {
         <div className="min-w-0">
           <div className="font-medium text-primary truncate">{m.name || m.display_name || "Sem nome"}</div>
           <div className="text-xs text-muted-foreground truncate">{m.email}</div>
-          <div className="text-[10px] text-muted-foreground mt-0.5">
-            Registo: {new Date(m.created_at).toLocaleDateString("pt-PT")}
+          <div className="text-[10px] text-muted-foreground mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5">
+            <span>Registo: {new Date(m.created_at).toLocaleDateString("pt-PT")}</span>
+            <span>Último login: {formatDateTime(m.last_sign_in_at)}</span>
           </div>
         </div>
       </div>
@@ -169,6 +164,7 @@ function GestaoEquipaPage() {
           </Button>
         )}
 
+        {m.status !== "removed" && (
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button size="sm" variant="ghost" className="text-rose-700 hover:text-rose-800 hover:bg-rose-50">
@@ -190,6 +186,7 @@ function GestaoEquipaPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        )}
       </div>
     </motion.div>
   );
@@ -228,8 +225,9 @@ function GestaoEquipaPage() {
       <Tabs defaultValue="pending" className="w-full">
         <TabsList>
           <TabsTrigger value="pending">Pendentes ({pending.length})</TabsTrigger>
-          <TabsTrigger value="active">Ativos ({active.length})</TabsTrigger>
-          <TabsTrigger value="others">Outros ({others.length})</TabsTrigger>
+          <TabsTrigger value="active">Aprovados ({active.length})</TabsTrigger>
+          <TabsTrigger value="rejected">Rejeitados ({rejected.length})</TabsTrigger>
+          <TabsTrigger value="removed">Removidos ({removed.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="pending" className="space-y-3 mt-4">
@@ -238,12 +236,16 @@ function GestaoEquipaPage() {
             pending.map((m) => <Row key={m.id} m={m} />)}
         </TabsContent>
         <TabsContent value="active" className="space-y-3 mt-4">
-          {active.length === 0 ? <div className="text-muted-foreground text-sm italic">Sem utilizadores ativos.</div> :
+          {active.length === 0 ? <div className="text-muted-foreground text-sm italic">Sem utilizadores aprovados.</div> :
             active.map((m) => <Row key={m.id} m={m} />)}
         </TabsContent>
-        <TabsContent value="others" className="space-y-3 mt-4">
-          {others.length === 0 ? <div className="text-muted-foreground text-sm italic">Sem registos.</div> :
-            others.map((m) => <Row key={m.id} m={m} />)}
+        <TabsContent value="rejected" className="space-y-3 mt-4">
+          {rejected.length === 0 ? <div className="text-muted-foreground text-sm italic">Sem registos.</div> :
+            rejected.map((m) => <Row key={m.id} m={m} />)}
+        </TabsContent>
+        <TabsContent value="removed" className="space-y-3 mt-4">
+          {removed.length === 0 ? <div className="text-muted-foreground text-sm italic">Sem utilizadores removidos.</div> :
+            removed.map((m) => <Row key={m.id} m={m} />)}
         </TabsContent>
       </Tabs>
     </div>
