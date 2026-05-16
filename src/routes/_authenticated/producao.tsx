@@ -126,26 +126,53 @@ function ProducaoPage() {
   const range = useMemo(() => getRange(filter, from, to), [filter, from, to]);
 
   const aggregated = useMemo(() => {
-    const map = new Map<string, { name: string; qty: number; orders: number }>();
+    // Group by delivery date AND product so each period is shown separately.
+    const map = new Map<string, { key: string; name: string; qty: number; orders: number; date: string | null }>();
     for (const o of orders) {
       if (!withinRange(o, range)) continue;
-        const items = parseOrderItems(o.products, Number(o.quantity) || 1);
+      const date = o.delivery_date ?? o.order_date ?? null;
+      const items = parseOrderItems(o.products, Number(o.quantity) || 1);
       for (const it of items) {
-        const key = normalizeKey(it.name);
-        if (!key) continue;
-        const existing = map.get(key);
+        const pKey = normalizeKey(it.name);
+        if (!pKey) continue;
+        const groupKey = `${date ?? "sem-data"}|${pKey}`;
+        const existing = map.get(groupKey);
         if (existing) {
           existing.qty += it.qty;
           existing.orders += 1;
         } else {
-          map.set(key, { name: it.name, qty: it.qty, orders: 1 });
+          map.set(groupKey, { key: groupKey, name: it.name, qty: it.qty, orders: 1, date });
         }
       }
     }
-    return Array.from(map.entries())
-      .map(([key, v]) => ({ key, ...v }))
-      .sort((a, b) => b.qty - a.qty);
+    return Array.from(map.values())
+      .sort((a, b) => {
+        const da = a.date ?? "9999-12-31";
+        const db = b.date ?? "9999-12-31";
+        if (da !== db) return da.localeCompare(db);
+        return b.qty - a.qty;
+      });
   }, [orders, range]);
+
+  // Group cards by date for display
+  const grouped = useMemo(() => {
+    const groups = new Map<string, typeof aggregated>();
+    for (const a of aggregated) {
+      const k = a.date ?? "";
+      if (!groups.has(k)) groups.set(k, []);
+      groups.get(k)!.push(a);
+    }
+    return Array.from(groups.entries()).map(([date, items]) => ({ date, items }));
+  }, [aggregated]);
+
+  const dateLabel = (iso: string) => {
+    if (!iso) return "Sem data de entrega";
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
+    if (iso === isoDay(today)) return "Hoje";
+    if (iso === isoDay(tomorrow)) return "Amanhã";
+    return new Date(iso + "T00:00:00").toLocaleDateString("pt-PT", { weekday: "long", day: "2-digit", month: "long" });
+  };
 
   const totals = useMemo(() => {
     const totalUnits = aggregated.reduce((s, a) => s + a.qty, 0);
@@ -173,7 +200,9 @@ function ProducaoPage() {
     const delta = clamped - prev;
     if (delta <= 0) return;
 
-    const productId = productMap[key];
+    // key format: `${date}|${productKey}` — extract the product key for lookup
+    const productKey = key.includes("|") ? key.split("|").slice(1).join("|") : key;
+    const productId = productMap[productKey];
     if (!productId) {
       toast.warning(`Produto "${productName ?? key}" não existe no catálogo — stock não atualizado.`);
       return;
@@ -283,9 +312,21 @@ function ProducaoPage() {
           Sem encomendas a produzir para este período.
         </Card>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <AnimatePresence initial={false}>
-            {aggregated.map((a, i) => {
+        <div className="space-y-6">
+          {grouped.map((group) => {
+            const groupTotal = group.items.reduce((s, x) => s + x.qty, 0);
+            const groupDone = group.items.reduce((s, x) => s + Math.min(produced[x.key] ?? 0, x.qty), 0);
+            return (
+            <div key={group.date || "sem-data"} className="space-y-3">
+              <div className="flex items-baseline justify-between border-b border-border/60 pb-2">
+                <h2 className="font-display text-lg text-primary capitalize">{dateLabel(group.date)}</h2>
+                <span className="text-xs text-muted-foreground">
+                  {groupDone} / {groupTotal} un. · {group.items.length} {group.items.length === 1 ? "produto" : "produtos"}
+                </span>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <AnimatePresence initial={false}>
+                {group.items.map((a, i) => {
               const done = Math.min(produced[a.key] ?? 0, a.qty);
               const pct = a.qty ? Math.round((done / a.qty) * 100) : 0;
               const completed = done >= a.qty;
@@ -366,8 +407,12 @@ function ProducaoPage() {
                   </Card>
                 </motion.div>
               );
-            })}
-          </AnimatePresence>
+                })}
+                </AnimatePresence>
+              </div>
+            </div>
+            );
+          })}
         </div>
       )}
     </div>
