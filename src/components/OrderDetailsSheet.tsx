@@ -1,4 +1,3 @@
-import { motion, AnimatePresence } from "framer-motion";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -77,15 +76,7 @@ export function OrderDetailsSheet({ order, open, onOpenChange, onEdit }: Props) 
         side="right"
         className="w-full sm:max-w-xl overflow-y-auto p-0 bg-gradient-to-b from-[hsl(var(--background))] to-[hsl(var(--muted))]/40 border-l border-border/60"
       >
-        <AnimatePresence>
-          {open && (
-            <motion.div
-              initial={{ opacity: 0, x: 24 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 24 }}
-              transition={{ duration: 0.25, ease: "easeOut" }}
-              className="flex flex-col"
-            >
+        <div className="flex flex-col animate-in fade-in-50 duration-300">
               {/* Header */}
               <div className="px-6 pt-6 pb-5 border-b border-border/50 bg-card/40 backdrop-blur-sm">
                 <SheetHeader className="space-y-2 text-left">
@@ -220,9 +211,7 @@ export function OrderDetailsSheet({ order, open, onOpenChange, onEdit }: Props) 
                   <X className="h-4 w-4 mr-1.5" /> Fechar
                 </Button>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        </div>
       </SheetContent>
     </Sheet>
   );
