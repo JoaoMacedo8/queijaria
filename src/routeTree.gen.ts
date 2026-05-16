@@ -14,6 +14,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedProdutosRouteImport } from './routes/_authenticated/produtos'
+import { Route as AuthenticatedGestaoEncomendasRouteImport } from './routes/_authenticated/gestao-encomendas'
 import { Route as AuthenticatedEncomendasRouteImport } from './routes/_authenticated/encomendas'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
@@ -42,6 +43,12 @@ const AuthenticatedProdutosRoute = AuthenticatedProdutosRouteImport.update({
   path: '/produtos',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedGestaoEncomendasRoute =
+  AuthenticatedGestaoEncomendasRouteImport.update({
+    id: '/gestao-encomendas',
+    path: '/gestao-encomendas',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedEncomendasRoute = AuthenticatedEncomendasRouteImport.update({
   id: '/encomendas',
   path: '/encomendas',
@@ -65,6 +72,7 @@ export interface FileRoutesByFullPath {
   '/clientes': typeof AuthenticatedClientesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/encomendas': typeof AuthenticatedEncomendasRoute
+  '/gestao-encomendas': typeof AuthenticatedGestaoEncomendasRoute
   '/produtos': typeof AuthenticatedProdutosRoute
 }
 export interface FileRoutesByTo {
@@ -74,6 +82,7 @@ export interface FileRoutesByTo {
   '/clientes': typeof AuthenticatedClientesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/encomendas': typeof AuthenticatedEncomendasRoute
+  '/gestao-encomendas': typeof AuthenticatedGestaoEncomendasRoute
   '/produtos': typeof AuthenticatedProdutosRoute
 }
 export interface FileRoutesById {
@@ -85,6 +94,7 @@ export interface FileRoutesById {
   '/_authenticated/clientes': typeof AuthenticatedClientesRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/encomendas': typeof AuthenticatedEncomendasRoute
+  '/_authenticated/gestao-encomendas': typeof AuthenticatedGestaoEncomendasRoute
   '/_authenticated/produtos': typeof AuthenticatedProdutosRoute
 }
 export interface FileRouteTypes {
@@ -96,6 +106,7 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/dashboard'
     | '/encomendas'
+    | '/gestao-encomendas'
     | '/produtos'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -105,6 +116,7 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/dashboard'
     | '/encomendas'
+    | '/gestao-encomendas'
     | '/produtos'
   id:
     | '__root__'
@@ -115,6 +127,7 @@ export interface FileRouteTypes {
     | '/_authenticated/clientes'
     | '/_authenticated/dashboard'
     | '/_authenticated/encomendas'
+    | '/_authenticated/gestao-encomendas'
     | '/_authenticated/produtos'
   fileRoutesById: FileRoutesById
 }
@@ -162,6 +175,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProdutosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/gestao-encomendas': {
+      id: '/_authenticated/gestao-encomendas'
+      path: '/gestao-encomendas'
+      fullPath: '/gestao-encomendas'
+      preLoaderRoute: typeof AuthenticatedGestaoEncomendasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/encomendas': {
       id: '/_authenticated/encomendas'
       path: '/encomendas'
@@ -190,6 +210,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedEncomendasRoute: typeof AuthenticatedEncomendasRoute
+  AuthenticatedGestaoEncomendasRoute: typeof AuthenticatedGestaoEncomendasRoute
   AuthenticatedProdutosRoute: typeof AuthenticatedProdutosRoute
 }
 
@@ -197,6 +218,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedClientesRoute: AuthenticatedClientesRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedEncomendasRoute: AuthenticatedEncomendasRoute,
+  AuthenticatedGestaoEncomendasRoute: AuthenticatedGestaoEncomendasRoute,
   AuthenticatedProdutosRoute: AuthenticatedProdutosRoute,
 }
 
@@ -212,13 +234,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
