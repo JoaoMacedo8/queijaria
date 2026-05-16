@@ -43,6 +43,8 @@ type WhatsPending = {
 
 type FilterKey = "all" | "pending" | "approved" | "rejected";
 
+type LineItem = { product_id: string; name: string; price: number; qty: number };
+
 /* ============================== Helpers ============================== */
 
 function formatReceivedAt(iso: string) {
@@ -68,6 +70,56 @@ async function convertToOfficialOrder(p: WhatsPending) {
   if (error) throw error;
 }
 
+/** Loose accent-insensitive token. */
+function norm(s: string) {
+  return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+/** Map written numbers (PT) to digits for simple quantity extraction. */
+const WORD_NUMS: Record<string, number> = {
+  um: 1, uma: 1, dois: 2, duas: 2, tres: 3, três: 3, quatro: 4, cinco: 5,
+  seis: 6, sete: 7, oito: 8, nove: 9, dez: 10, dúzia: 12, duzia: 12,
+};
+
+/**
+ * Heuristic product extraction from a free-text WhatsApp message.
+ * Modular & swappable later by a Gemini call: same signature.
+ */
+function extractItemsFromMessage(message: string, products: Product[]): LineItem[] {
+  if (!message.trim() || products.length === 0) return [];
+  const text = ` ${norm(message)} `;
+  const found = new Map<string, LineItem>();
+
+  for (const p of products) {
+    const tokens = norm(p.name).split(/\s+/).filter((t) => t.length > 2);
+    if (!tokens.length) continue;
+    // Require at least one distinctive token to be present.
+    const hits = tokens.filter((t) => text.includes(t));
+    if (hits.length === 0) continue;
+
+    // Try to find a quantity right before the first hit.
+    const anchor = hits[0];
+    const idx = text.indexOf(anchor);
+    const before = text.slice(Math.max(0, idx - 25), idx);
+    let qty = 1;
+    const numMatch = before.match(/(\d+)\s*x?\s*$/);
+    if (numMatch) qty = Math.max(1, parseInt(numMatch[1], 10));
+    else {
+      const wordMatch = before.match(/(um|uma|dois|duas|tres|três|quatro|cinco|seis|sete|oito|nove|dez|duzia|dúzia)\s+$/);
+      if (wordMatch) qty = WORD_NUMS[wordMatch[1]] ?? 1;
+    }
+
+    const existing = found.get(p.id);
+    if (existing) existing.qty += qty;
+    else found.set(p.id, { product_id: p.id, name: p.name, price: Number(p.price) || 0, qty });
+  }
+
+  return Array.from(found.values());
+}
+
+function itemsToText(items: LineItem[]) {
+  return items.map((i) => `${i.qty}x ${i.name}`).join(", ");
+}
 /* ============================== Page ============================== */
 
 function GestaoWhatsAppPage() {
