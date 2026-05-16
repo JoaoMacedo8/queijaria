@@ -35,11 +35,24 @@ async function updateOrderStatus(id: string, status: OrderStatus) {
   else toast.success("Estado atualizado");
 }
 
+function normalizePhonePT(raw: string): string {
+  let p = (raw || "").replace(/\D/g, "");
+  if (!p) return "";
+  if (p.startsWith("00")) p = p.slice(2);
+  if (p.startsWith("351")) return p;
+  // remove leading zeros from local format
+  p = p.replace(/^0+/, "");
+  return `351${p}`;
+}
+
 function openWhatsApp(o: Order) {
-  const phone = (o.phone || "").replace(/\D/g, "");
-  if (!phone) { toast.error("Cliente sem telefone"); return; }
+  const phone = normalizePhonePT(o.phone || "");
+  if (!phone || phone.length < 11) { toast.error("Cliente sem telefone válido"); return; }
   const msg = `Olá ${o.customer_name}, a sua encomenda da Serra D'Padrela está atualmente em estado: ${STATUS_LABEL[o.status]}. Total: ${formatCurrency(Number(o.total_price))}. Obrigado!`;
-  window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
+  const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+  // api.whatsapp.com works more reliably on mobile when app not installed redirect
+  const isMobile = typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  window.open(isMobile ? `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(msg)}` : url, "_blank");
 }
 
 function WhatsAppButton({ order, className = "" }: { order: Order; className?: string }) {
