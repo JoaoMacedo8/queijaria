@@ -76,12 +76,12 @@ function Dashboard() {
   }, [products, orders]);
 
   const stats = [
-    { label: "Total de encomendas", value: total, icon: Package, iconBg: "bg-primary/10 text-primary", accent: "from-primary/15 via-primary/5 to-transparent" },
-    { label: "Pendentes", value: pending, icon: Clock, iconBg: "bg-amber-100 text-amber-700", accent: "from-amber-200/55 via-amber-100/20 to-transparent" },
-    { label: "Em produção", value: inProduction, icon: Factory, iconBg: "bg-sky-100 text-sky-700", accent: "from-sky-200/50 via-sky-100/20 to-transparent" },
-    { label: "Prontas", value: ready, icon: PackageCheck, iconBg: "bg-emerald-100 text-emerald-700", accent: "from-emerald-200/50 via-emerald-100/20 to-transparent" },
-    { label: "Entregues", value: delivered, icon: CheckCircle2, iconBg: "bg-green-800/15 text-green-900", accent: "from-green-200/40 via-green-100/15 to-transparent" },
-    { label: "Vendas totais", value: formatCurrency(revenue), icon: Euro, iconBg: "bg-accent/40 text-accent-foreground", accent: "from-accent/40 via-accent/15 to-transparent" },
+    { label: "Total de encomendas", value: total, icon: Package, iconBg: "bg-primary/10 text-primary", accent: "from-primary/15 via-primary/5 to-transparent", filter: "all" as const },
+    { label: "Pendentes", value: pending, icon: Clock, iconBg: "bg-amber-100 text-amber-700", accent: "from-amber-200/55 via-amber-100/20 to-transparent", filter: "pendente" as const },
+    { label: "Em produção", value: inProduction, icon: Factory, iconBg: "bg-sky-100 text-sky-700", accent: "from-sky-200/50 via-sky-100/20 to-transparent", filter: "em_producao" as const },
+    { label: "Prontas", value: ready, icon: PackageCheck, iconBg: "bg-emerald-100 text-emerald-700", accent: "from-emerald-200/50 via-emerald-100/20 to-transparent", filter: "pronta" as const },
+    { label: "Entregues", value: delivered, icon: CheckCircle2, iconBg: "bg-green-800/15 text-green-900", accent: "from-green-200/40 via-green-100/15 to-transparent", filter: "entregue" as const },
+    { label: "Vendas totais", value: formatCurrency(revenue), icon: Euro, iconBg: "bg-accent/40 text-accent-foreground", accent: "from-accent/40 via-accent/15 to-transparent", filter: null },
   ];
 
   const recent = orders.slice(0, 5);
