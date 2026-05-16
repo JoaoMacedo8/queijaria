@@ -2,7 +2,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import type { Order } from "./orders";
-import { STATUS_LABEL, formatCurrency, formatDate } from "./orders";
+import { STATUS_LABEL, formatCurrency, formatDate, formatOrderProducts } from "./orders";
 
 export function exportPDF(orders: Order[]) {
   const doc = new jsPDF();
@@ -17,7 +17,7 @@ export function exportPDF(orders: Order[]) {
     body: orders.map((o) => [
       o.customer_name,
       o.phone,
-      o.products,
+      formatOrderProducts(o),
       String(o.quantity),
       formatCurrency(Number(o.total_price)),
       formatDate(o.delivery_date),
@@ -36,7 +36,7 @@ export function exportExcel(orders: Order[]) {
       Cliente: o.customer_name,
       Telefone: o.phone,
       Morada: o.address,
-      Produtos: o.products,
+      Produtos: formatOrderProducts(o),
       Quantidade: o.quantity,
       "Preço total (€)": Number(o.total_price),
       "Data encomenda": o.order_date,
