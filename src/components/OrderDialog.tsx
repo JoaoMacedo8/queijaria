@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { STATUS_OPTIONS, formatCurrency, type Order, type OrderStatus } from "@/lib/orders";
+import { STATUS_OPTIONS, formatCurrency, parseOrderItems, type Order, type OrderStatus } from "@/lib/orders";
 import type { Product } from "@/lib/products";
 import { toast } from "sonner";
 
@@ -45,7 +45,8 @@ export function OrderDialog({ open, onOpenChange, order }: Props) {
         setProducts(list);
         // Try to match existing order's product by name
         if (order && list.length) {
-          const match = list.find((p) => p.name === order.products);
+          const primaryItem = parseOrderItems(order.products, Number(order.quantity) || 1)[0];
+          const match = list.find((p) => p.name === (primaryItem?.name ?? order.products));
           if (match) {
             const unit = order.quantity ? Number(order.total_price) / Number(order.quantity) : Number(match.price);
             setForm((f) => ({ ...f, product_id: match.id, unit_price: unit.toFixed(2) }));
