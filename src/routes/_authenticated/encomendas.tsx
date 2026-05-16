@@ -257,6 +257,7 @@ function EncomendasPage() {
                         <StatusBadgeSelect order={o} />
                       </td>
                       <td className="px-4 py-3 text-right whitespace-nowrap">
+                        <WhatsAppButton order={o} />
                         <Button variant="ghost" size="icon" onClick={() => openEdit(o)}><Pencil className="h-4 w-4" /></Button>
                         <Button variant="ghost" size="icon" onClick={() => setDeleteId(o.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                       </td>
