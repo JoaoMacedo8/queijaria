@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
-import { STATUS_LABEL, formatCurrency, formatDate, type Order } from "@/lib/orders";
+import { STATUS_LABEL, formatCurrency, formatDate, formatOrderProducts, type Order } from "@/lib/orders";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/clientes")({
@@ -261,7 +261,7 @@ function ClientesPage() {
                     <li key={o.id} className="p-3 hover:bg-muted/40 transition-colors">
                       <div className="flex justify-between items-start gap-2">
                         <div className="min-w-0">
-                          <div className="text-sm truncate">{o.products}</div>
+                          <div className="text-sm truncate">{formatOrderProducts(o)}</div>
                           <div className="text-xs text-muted-foreground mt-0.5">
                             {formatDate(o.order_date)} · {STATUS_LABEL[o.status]}
                           </div>

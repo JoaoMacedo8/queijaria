@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import type { Order, OrderStatus } from "@/lib/orders";
+import { parseOrderItems } from "@/lib/orders";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/producao")({
@@ -21,23 +22,6 @@ const PRODUCTION_STATUSES: OrderStatus[] = ["pendente", "em_producao", "em_prepa
 const PRODUCED_KEY = "producao:produzidos:v1";
 
 type Filter = "hoje" | "amanha" | "semana" | "intervalo" | "todas";
-
-function parseLines(text: string): { name: string; qty: number }[] {
-  if (!text) return [];
-  return text
-    .split(/\n|;|,/)
-    .map((l) => l.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const qtyM = line.match(/^(\d+)\s*[x×]\s*/i);
-      const name = line
-        .replace(/^(\d+)\s*[x×]\s*/i, "")
-        .replace(/[-–|]?\s*\d+[.,]?\d*\s*€.*$/, "")
-        .trim();
-      return { name: name || line, qty: qtyM ? Number(qtyM[1]) : 1 };
-    })
-    .filter((i) => i.name.length > 0);
-}
 
 function normalizeKey(name: string): string {
   return name
@@ -145,7 +129,7 @@ function ProducaoPage() {
     const map = new Map<string, { name: string; qty: number; orders: number }>();
     for (const o of orders) {
       if (!withinRange(o, range)) continue;
-      const items = parseLines(o.products);
+        const items = parseOrderItems(o.products, Number(o.quantity) || 1);
       for (const it of items) {
         const key = normalizeKey(it.name);
         if (!key) continue;
