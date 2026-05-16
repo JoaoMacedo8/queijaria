@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { ShieldCheck, Check, X, Trash2, UserCog, Clock, Users as UsersIcon } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth, type AccountStatus, type AppRole } from "@/lib/auth";
+import { useAuth, type AccountStatus } from "@/lib/auth";
 import { listAllTeamUsers, type TeamUserRecord } from "@/lib/team.functions";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
