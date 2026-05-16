@@ -9,7 +9,7 @@ import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { formatCurrency, type Order } from "@/lib/orders";
+import { formatCurrency, formatOrderProducts, parseOrderItems, type Order } from "@/lib/orders";
 import type { Product } from "@/lib/products";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -60,11 +60,11 @@ function Dashboard() {
     const counts = new Map<string, number>();
     for (const o of orders) {
       if (o.status === "cancelada") continue;
-      const text = o.products.toLowerCase();
-      const qty = Number(o.quantity) || 1;
-      for (const p of products) {
-        if (text.includes(p.name.toLowerCase())) {
-          counts.set(p.name, (counts.get(p.name) ?? 0) + qty);
+      const items = parseOrderItems(o.products, Number(o.quantity) || 1);
+      for (const item of items) {
+        const matchedProduct = products.find((p) => p.name.toLowerCase() === item.name.toLowerCase());
+        if (matchedProduct) {
+          counts.set(matchedProduct.name, (counts.get(matchedProduct.name) ?? 0) + item.qty);
         }
       }
     }
@@ -198,7 +198,7 @@ function Dashboard() {
               <li key={o.id} className="px-5 md:px-6 py-4 flex items-center justify-between gap-4 hover:bg-muted/40 transition-colors">
                 <div className="min-w-0">
                   <div className="font-medium truncate">{o.customer_name}</div>
-                  <div className="text-xs text-muted-foreground truncate mt-0.5">{o.products}</div>
+                  <div className="text-xs text-muted-foreground truncate mt-0.5">{formatOrderProducts(o)}</div>
                 </div>
                 <div className="text-right shrink-0">
                   <div className="font-display text-primary text-lg">{formatCurrency(Number(o.total_price))}</div>
