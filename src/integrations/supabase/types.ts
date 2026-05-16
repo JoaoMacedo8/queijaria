@@ -182,6 +182,42 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_pending_orders: {
+        Row: {
+          created_at: string
+          customer_name: string
+          detected_products: string
+          estimated_total: number
+          id: string
+          original_message: string
+          phone: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_name: string
+          detected_products?: string
+          estimated_total?: number
+          id?: string
+          original_message?: string
+          phone: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_name?: string
+          detected_products?: string
+          estimated_total?: number
+          id?: string
+          original_message?: string
+          phone?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
