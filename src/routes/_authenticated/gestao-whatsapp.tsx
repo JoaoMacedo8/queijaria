@@ -128,8 +128,77 @@ function GestaoWhatsAppPage() {
   const [filter, setFilter] = useState<FilterKey>("pending");
   const [actingId, setActingId] = useState<string | null>(null);
   const [simOpen, setSimOpen] = useState(false);
-  const [form, setForm] = useState({ cliente: "", telefone: "", mensagem: "", total: "", produtos: "" });
-  const resetForm = () => setForm({ cliente: "", telefone: "", mensagem: "", total: "", produtos: "" });
+  const [form, setForm] = useState({ cliente: "", telefone: "", mensagem: "" });
+  const [lineItems, setLineItems] = useState<LineItem[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [productsLoading, setProductsLoading] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [autoFilled, setAutoFilled] = useState(false);
+
+  const resetForm = () => {
+    setForm({ cliente: "", telefone: "", mensagem: "" });
+    setLineItems([]);
+    setAutoFilled(false);
+  };
+
+  const totalEstimado = useMemo(
+    () => lineItems.reduce((s, i) => s + i.price * i.qty, 0),
+    [lineItems],
+  );
+
+  /* ---------- load products when dialog opens ---------- */
+  useEffect(() => {
+    if (!simOpen || products.length > 0) return;
+    setProductsLoading(true);
+    supabase
+      .from("products")
+      .select("*")
+      .eq("active", true)
+      .order("name")
+      .then(({ data, error }) => {
+        if (error) toast.error(error.message);
+        else setProducts((data ?? []) as Product[]);
+        setProductsLoading(false);
+      });
+  }, [simOpen, products.length]);
+
+  /* ---------- auto-extract from message (debounced) ---------- */
+  useEffect(() => {
+    if (!simOpen || !form.mensagem.trim() || products.length === 0) return;
+    const t = setTimeout(() => {
+      const guesses = extractItemsFromMessage(form.mensagem, products);
+      if (guesses.length === 0) return;
+      // Merge non-destructively: keep manual quantities, add missing ones.
+      setLineItems((curr) => {
+        const map = new Map(curr.map((i) => [i.product_id, i]));
+        let added = 0;
+        for (const g of guesses) {
+          if (!map.has(g.product_id)) { map.set(g.product_id, g); added += 1; }
+        }
+        if (added > 0) setAutoFilled(true);
+        return Array.from(map.values());
+      });
+    }, 400);
+    return () => clearTimeout(t);
+  }, [form.mensagem, products, simOpen]);
+
+  /* ---------- line item helpers ---------- */
+  const addProduct = (p: Product) => {
+    setLineItems((curr) => {
+      const existing = curr.find((i) => i.product_id === p.id);
+      if (existing) return curr.map((i) => i.product_id === p.id ? { ...i, qty: i.qty + 1 } : i);
+      return [...curr, { product_id: p.id, name: p.name, price: Number(p.price) || 0, qty: 1 }];
+    });
+    setPickerOpen(false);
+  };
+  const changeQty = (id: string, delta: number) => {
+    setLineItems((curr) =>
+      curr
+        .map((i) => i.product_id === id ? { ...i, qty: Math.max(0, i.qty + delta) } : i)
+        .filter((i) => i.qty > 0),
+    );
+  };
+  const removeLine = (id: string) => setLineItems((curr) => curr.filter((i) => i.product_id !== id));
 
   /* ---------- load + realtime ---------- */
   useEffect(() => {
