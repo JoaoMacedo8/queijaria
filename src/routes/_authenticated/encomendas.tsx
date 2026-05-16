@@ -35,6 +35,27 @@ async function updateOrderStatus(id: string, status: OrderStatus) {
   else toast.success("Estado atualizado");
 }
 
+function openWhatsApp(o: Order) {
+  const phone = (o.phone || "").replace(/\D/g, "");
+  if (!phone) { toast.error("Cliente sem telefone"); return; }
+  const msg = `Olá ${o.customer_name}, a sua encomenda da Serra D'Padrela está atualmente em estado: ${STATUS_LABEL[o.status]}. Total: ${formatCurrency(Number(o.total_price))}. Obrigado!`;
+  window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
+}
+
+function WhatsAppButton({ order, className = "" }: { order: Order; className?: string }) {
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={() => openWhatsApp(order)}
+      title="Enviar WhatsApp"
+      className={`text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 ${className}`}
+    >
+      <MessageCircle className="h-4 w-4" />
+    </Button>
+  );
+}
+
 function StatusBadgeSelect({ order }: { order: Order }) {
   return (
     <Select value={order.status} onValueChange={(v) => updateOrderStatus(order.id, v as OrderStatus)}>
