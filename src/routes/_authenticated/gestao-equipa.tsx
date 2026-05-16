@@ -64,7 +64,31 @@ function GestaoEquipaPage() {
       const res = await fetchTeam();
       setMembers(res.users as TeamMember[]);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erro ao carregar utilizadores");
+      const msg = err instanceof Error ? err.message : "Erro ao carregar utilizadores";
+      console.error("[gestao-equipa] serverFn falhou, fallback para query direta:", msg);
+      toast.error(`Histórico completo indisponível: ${msg}`);
+      // Fallback: query profiles directly (will only show records with a profile,
+      // and won't include last_sign_in_at, but at least shows status history).
+      const [{ data: profs }, { data: roles }] = await Promise.all([
+        supabase.from("profiles").select("id, email, display_name, name, status, created_at").order("created_at", { ascending: false }),
+        supabase.from("user_roles").select("user_id, role"),
+      ]);
+      const roleMap = new Map<string, "admin" | "employee">();
+      for (const r of (roles ?? []) as { user_id: string; role: "admin" | "employee" }[]) {
+        const prev = roleMap.get(r.user_id);
+        if (prev !== "admin") roleMap.set(r.user_id, r.role);
+      }
+      const fallback: TeamMember[] = (profs ?? []).map((p) => ({
+        id: p.id,
+        email: p.email,
+        name: p.name,
+        display_name: p.display_name,
+        status: (p.status as TeamMember["status"]) ?? "pending",
+        role: roleMap.get(p.id) ?? "employee",
+        created_at: p.created_at,
+        last_sign_in_at: null,
+      }));
+      setMembers(fallback);
     } finally {
       setFetching(false);
     }
