@@ -99,22 +99,35 @@ function Dashboard() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-5">
-        {stats.map((s, i) => (
-          <motion.div
-            key={s.label}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05 }}
-          >
-            <Card className={`p-4 md:p-5 bg-gradient-to-br ${s.accent} border-border/60 shadow-elegant hover:shadow-lg hover:-translate-y-0.5 transition-all relative overflow-hidden h-full`}>
+        {stats.map((s, i) => {
+          const cardInner = (
+            <Card className={`p-4 md:p-5 bg-gradient-to-br ${s.accent} border-border/60 shadow-elegant hover:shadow-lg hover:-translate-y-0.5 transition-all relative overflow-hidden h-full ${s.filter !== null ? "cursor-pointer" : ""}`}>
               <div className={`h-9 w-9 rounded-lg ${s.iconBg} flex items-center justify-center mb-3`}>
                 <s.icon className="h-4 w-4" />
               </div>
               <div className="text-xl md:text-2xl font-display font-semibold text-primary leading-none">{s.value}</div>
               <div className="text-[11px] md:text-xs text-muted-foreground mt-2 leading-tight">{s.label}</div>
             </Card>
-          </motion.div>
-        ))}
+          );
+          return (
+            <motion.div
+              key={s.label}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05 }}
+            >
+              {s.filter !== null ? (
+                <Link
+                  to="/encomendas"
+                  search={s.filter === "all" ? {} : { status: s.filter }}
+                  className="block h-full"
+                >
+                  {cardInner}
+                </Link>
+              ) : cardInner}
+            </motion.div>
+          );
+        })}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
