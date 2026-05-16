@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, Link, useNavigate, useLocation } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { LayoutDashboard, ClipboardList, Package, Users, LogOut, Menu, MessageCircle, ChefHat } from "lucide-react";
+import { LayoutDashboard, ClipboardList, Package, Users, LogOut, Menu, MessageCircle, ChefHat, ShieldCheck, Clock } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -11,7 +11,7 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 function AuthLayout() {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading, signOut, status, isAdmin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -23,6 +23,40 @@ function AuthLayout() {
     return <div className="min-h-screen flex items-center justify-center bg-grain text-muted-foreground">A carregar…</div>;
   }
 
+  // Block users that aren't approved yet
+  if (status && status !== "approved") {
+    const messages: Record<string, { title: string; body: string }> = {
+      pending: {
+        title: "Conta pendente de aprovação",
+        body: "A tua conta foi criada com sucesso e está a aguardar aprovação do administrador. Receberás acesso assim que for aprovada.",
+      },
+      rejected: {
+        title: "Acesso não autorizado",
+        body: "O acesso à tua conta foi recusado. Contacta o administrador para mais informações.",
+      },
+      blocked: {
+        title: "Conta bloqueada",
+        body: "A tua conta está temporariamente bloqueada. Contacta o administrador para a desbloquear.",
+      },
+    };
+    const m = messages[status] ?? messages.pending;
+    return (
+      <div className="min-h-screen bg-grain flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-card/80 backdrop-blur-md border border-border/70 rounded-2xl p-8 shadow-soft text-center">
+          <div className="mx-auto w-14 h-14 rounded-full bg-accent/30 flex items-center justify-center mb-4">
+            <Clock className="w-6 h-6 text-accent-foreground" />
+          </div>
+          <h1 className="font-display text-2xl text-primary mb-2">{m.title}</h1>
+          <p className="text-sm text-muted-foreground mb-6">{m.body}</p>
+          <div className="text-xs text-muted-foreground mb-4 truncate">{user.email}</div>
+          <Button variant="outline" size="sm" onClick={signOut} className="w-full">
+            <LogOut className="h-4 w-4 mr-2" /> Sair
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   const nav = [
     { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { to: "/encomendas", label: "Encomendas", icon: ClipboardList },
@@ -30,6 +64,7 @@ function AuthLayout() {
     { to: "/clientes", label: "Clientes", icon: Users },
     { to: "/produtos", label: "Produtos", icon: Package },
     { to: "/gestao-whatsapp", label: "Gestão WhatsApp", icon: MessageCircle },
+    ...(isAdmin ? [{ to: "/gestao-equipa", label: "Gestão Equipa", icon: ShieldCheck }] : []),
   ];
 
   const NavLinks = ({ onNav }: { onNav?: () => void }) => (
