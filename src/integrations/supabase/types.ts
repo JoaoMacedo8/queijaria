@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      encomendas: {
+        Row: {
+          conteudo_pedido: string
+          created_at: string
+          data_entrega: string | null
+          id: string
+          nome_cliente: string
+          numero_whatsapp: string
+          status: string
+          valor_total: number
+        }
+        Insert: {
+          conteudo_pedido: string
+          created_at?: string
+          data_entrega?: string | null
+          id?: string
+          nome_cliente: string
+          numero_whatsapp: string
+          status?: string
+          valor_total?: number
+        }
+        Update: {
+          conteudo_pedido?: string
+          created_at?: string
+          data_entrega?: string | null
+          id?: string
+          nome_cliente?: string
+          numero_whatsapp?: string
+          status?: string
+          valor_total?: number
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           address: string
