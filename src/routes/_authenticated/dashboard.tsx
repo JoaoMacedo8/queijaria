@@ -76,12 +76,12 @@ function Dashboard() {
   }, [products, orders]);
 
   const stats = [
-    { label: "Total de encomendas", value: total, icon: Package, iconBg: "bg-primary/10 text-primary", accent: "from-primary/15 via-primary/5 to-transparent" },
-    { label: "Pendentes", value: pending, icon: Clock, iconBg: "bg-amber-100 text-amber-700", accent: "from-amber-200/55 via-amber-100/20 to-transparent" },
-    { label: "Em produção", value: inProduction, icon: Factory, iconBg: "bg-sky-100 text-sky-700", accent: "from-sky-200/50 via-sky-100/20 to-transparent" },
-    { label: "Prontas", value: ready, icon: PackageCheck, iconBg: "bg-emerald-100 text-emerald-700", accent: "from-emerald-200/50 via-emerald-100/20 to-transparent" },
-    { label: "Entregues", value: delivered, icon: CheckCircle2, iconBg: "bg-green-800/15 text-green-900", accent: "from-green-200/40 via-green-100/15 to-transparent" },
-    { label: "Vendas totais", value: formatCurrency(revenue), icon: Euro, iconBg: "bg-accent/40 text-accent-foreground", accent: "from-accent/40 via-accent/15 to-transparent" },
+    { label: "Total de encomendas", value: total, icon: Package, iconBg: "bg-primary/10 text-primary", accent: "from-primary/15 via-primary/5 to-transparent", filter: "all" as const },
+    { label: "Pendentes", value: pending, icon: Clock, iconBg: "bg-amber-100 text-amber-700", accent: "from-amber-200/55 via-amber-100/20 to-transparent", filter: "pendente" as const },
+    { label: "Em produção", value: inProduction, icon: Factory, iconBg: "bg-sky-100 text-sky-700", accent: "from-sky-200/50 via-sky-100/20 to-transparent", filter: "em_producao" as const },
+    { label: "Prontas", value: ready, icon: PackageCheck, iconBg: "bg-emerald-100 text-emerald-700", accent: "from-emerald-200/50 via-emerald-100/20 to-transparent", filter: "pronta" as const },
+    { label: "Entregues", value: delivered, icon: CheckCircle2, iconBg: "bg-green-800/15 text-green-900", accent: "from-green-200/40 via-green-100/15 to-transparent", filter: "entregue" as const },
+    { label: "Vendas totais", value: formatCurrency(revenue), icon: Euro, iconBg: "bg-accent/40 text-accent-foreground", accent: "from-accent/40 via-accent/15 to-transparent", filter: null },
   ];
 
   const recent = orders.slice(0, 5);
@@ -99,22 +99,35 @@ function Dashboard() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-5">
-        {stats.map((s, i) => (
-          <motion.div
-            key={s.label}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05 }}
-          >
-            <Card className={`p-4 md:p-5 bg-gradient-to-br ${s.accent} border-border/60 shadow-elegant hover:shadow-lg hover:-translate-y-0.5 transition-all relative overflow-hidden h-full`}>
+        {stats.map((s, i) => {
+          const cardInner = (
+            <Card className={`p-4 md:p-5 bg-gradient-to-br ${s.accent} border-border/60 shadow-elegant hover:shadow-lg hover:-translate-y-0.5 transition-all relative overflow-hidden h-full ${s.filter !== null ? "cursor-pointer" : ""}`}>
               <div className={`h-9 w-9 rounded-lg ${s.iconBg} flex items-center justify-center mb-3`}>
                 <s.icon className="h-4 w-4" />
               </div>
               <div className="text-xl md:text-2xl font-display font-semibold text-primary leading-none">{s.value}</div>
               <div className="text-[11px] md:text-xs text-muted-foreground mt-2 leading-tight">{s.label}</div>
             </Card>
-          </motion.div>
-        ))}
+          );
+          return (
+            <motion.div
+              key={s.label}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05 }}
+            >
+              {s.filter !== null ? (
+                <Link
+                  to="/encomendas"
+                  search={s.filter === "all" ? {} : { status: s.filter }}
+                  className="block h-full"
+                >
+                  {cardInner}
+                </Link>
+              ) : cardInner}
+            </motion.div>
+          );
+        })}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
