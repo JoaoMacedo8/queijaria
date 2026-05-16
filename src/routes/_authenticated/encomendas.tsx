@@ -274,7 +274,11 @@ function EncomendasPage() {
                 </thead>
                 <tbody className="divide-y divide-border/50">
                   {filtered.map((o) => (
-                    <tr key={o.id} onClick={() => openDetails(o)} className="hover:bg-accent/10 transition-colors cursor-pointer">
+                    <tr
+                      key={o.id}
+                      onClick={() => openDetails(o)}
+                      className="cursor-pointer hover:bg-accent/20 transition-colors group"
+                    >
                       <td className="px-5 py-4 font-medium">{o.customer_name}</td>
                       <td className="px-5 py-4 text-muted-foreground">{o.phone}</td>
                       <td className="px-5 py-4 max-w-xs truncate text-muted-foreground">{o.products}</td>
