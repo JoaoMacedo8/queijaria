@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, Search, FileDown, FileSpreadsheet, Pencil, Trash2, X } from "lucide-react";
+import { Plus, Search, FileDown, FileSpreadsheet, Pencil, Trash2, X, MessageCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,27 @@ async function updateOrderStatus(id: string, status: OrderStatus) {
   const { error } = await supabase.from("orders").update({ status }).eq("id", id);
   if (error) toast.error(error.message);
   else toast.success("Estado atualizado");
+}
+
+function openWhatsApp(o: Order) {
+  const phone = (o.phone || "").replace(/\D/g, "");
+  if (!phone) { toast.error("Cliente sem telefone"); return; }
+  const msg = `Olá ${o.customer_name}, a sua encomenda da Serra D'Padrela está atualmente em estado: ${STATUS_LABEL[o.status]}. Total: ${formatCurrency(Number(o.total_price))}. Obrigado!`;
+  window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
+}
+
+function WhatsAppButton({ order, className = "" }: { order: Order; className?: string }) {
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={() => openWhatsApp(order)}
+      title="Enviar WhatsApp"
+      className={`text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 ${className}`}
+    >
+      <MessageCircle className="h-4 w-4" />
+    </Button>
+  );
 }
 
 function StatusBadgeSelect({ order }: { order: Order }) {
@@ -199,6 +220,7 @@ function EncomendasPage() {
                   <div className="flex justify-between items-center">
                     <div className="font-display text-lg text-primary">{formatCurrency(Number(o.total_price))}</div>
                     <div className="flex gap-1">
+                      <WhatsAppButton order={o} />
                       <Button variant="ghost" size="icon" onClick={() => openEdit(o)}><Pencil className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="icon" onClick={() => setDeleteId(o.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                     </div>
@@ -235,6 +257,7 @@ function EncomendasPage() {
                         <StatusBadgeSelect order={o} />
                       </td>
                       <td className="px-4 py-3 text-right whitespace-nowrap">
+                        <WhatsAppButton order={o} />
                         <Button variant="ghost" size="icon" onClick={() => openEdit(o)}><Pencil className="h-4 w-4" /></Button>
                         <Button variant="ghost" size="icon" onClick={() => setDeleteId(o.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                       </td>
