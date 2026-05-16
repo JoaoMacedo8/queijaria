@@ -289,8 +289,8 @@ function GestaoWhatsAppPage() {
       customer_name: form.cliente.trim(),
       phone: form.telefone.trim(),
       original_message: form.mensagem.trim(),
-      detected_products: form.produtos.trim() || "—",
-      estimated_total: Number(form.total.replace(",", ".")) || 0,
+      detected_products: lineItems.length ? itemsToText(lineItems) : "—",
+      estimated_total: totalEstimado,
       status: "pending",
     });
     if (error) { toast.error(error.message); return; }
