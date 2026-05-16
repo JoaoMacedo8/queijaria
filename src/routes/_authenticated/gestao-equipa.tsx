@@ -61,7 +61,7 @@ function GestaoEquipaPage() {
   const load = useCallback(async () => {
     setFetching(true);
     try {
-      const res = await fetchTeam({ data: {} });
+      const res = await fetchTeam();
       setMembers(res.users as TeamMember[]);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao carregar utilizadores");
