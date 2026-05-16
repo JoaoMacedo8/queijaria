@@ -9,6 +9,7 @@ interface AuthCtx {
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string, displayName: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<{ error: string | null }>;
 }
 
 const Ctx = createContext<AuthCtx | null>(null);
@@ -50,7 +51,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => { await supabase.auth.signOut(); };
 
-  return <Ctx.Provider value={{ user, session, loading, signIn, signUp, signOut }}>{children}</Ctx.Provider>;
+  const resetPassword = async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    return { error: error?.message ?? null };
+  };
+
+  return <Ctx.Provider value={{ user, session, loading, signIn, signUp, signOut, resetPassword }}>{children}</Ctx.Provider>;
 }
 
 export function useAuth() {
