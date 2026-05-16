@@ -14,6 +14,69 @@ export type Database = {
   }
   public: {
     Tables: {
+      encomendas: {
+        Row: {
+          conteudo_pedido: string
+          created_at: string
+          data_entrega: string | null
+          id: string
+          nome_cliente: string
+          numero_whatsapp: string
+          status: string
+          valor_total: number
+        }
+        Insert: {
+          conteudo_pedido: string
+          created_at?: string
+          data_entrega?: string | null
+          id?: string
+          nome_cliente: string
+          numero_whatsapp: string
+          status?: string
+          valor_total?: number
+        }
+        Update: {
+          conteudo_pedido?: string
+          created_at?: string
+          data_entrega?: string | null
+          id?: string
+          nome_cliente?: string
+          numero_whatsapp?: string
+          status?: string
+          valor_total?: number
+        }
+        Relationships: []
+      }
+      encomendas_whatsapp: {
+        Row: {
+          created_at: string
+          id: string
+          nome_cliente: string
+          produtos_texto: string
+          status_validacao: string
+          telefone: string
+          valor_estimado: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome_cliente: string
+          produtos_texto: string
+          status_validacao?: string
+          telefone: string
+          valor_estimado?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome_cliente?: string
+          produtos_texto?: string
+          status_validacao?: string
+          telefone?: string
+          valor_estimado?: number
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           address: string
