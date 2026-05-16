@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, Link, useNavigate, useLocation } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { LayoutDashboard, ClipboardList, Package, Users, LogOut, Menu, MessageCircle } from "lucide-react";
+import { LayoutDashboard, ClipboardList, Package, Users, LogOut, Menu, MessageCircle, Inbox } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -27,6 +27,7 @@ function AuthLayout() {
     { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { to: "/encomendas", label: "Encomendas", icon: ClipboardList },
     { to: "/gestao-encomendas", label: "Gestão WhatsApp", icon: MessageCircle },
+    { to: "/encomendas-whatsapp", label: "Validar WhatsApp", icon: Inbox },
     { to: "/clientes", label: "Clientes", icon: Users },
     { to: "/produtos", label: "Produtos", icon: Package },
   ];

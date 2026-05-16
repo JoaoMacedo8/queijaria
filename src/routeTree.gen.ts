@@ -15,6 +15,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedProdutosRouteImport } from './routes/_authenticated/produtos'
 import { Route as AuthenticatedGestaoEncomendasRouteImport } from './routes/_authenticated/gestao-encomendas'
+import { Route as AuthenticatedEncomendasWhatsappRouteImport } from './routes/_authenticated/encomendas-whatsapp'
 import { Route as AuthenticatedEncomendasRouteImport } from './routes/_authenticated/encomendas'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
@@ -49,6 +50,12 @@ const AuthenticatedGestaoEncomendasRoute =
     path: '/gestao-encomendas',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedEncomendasWhatsappRoute =
+  AuthenticatedEncomendasWhatsappRouteImport.update({
+    id: '/encomendas-whatsapp',
+    path: '/encomendas-whatsapp',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedEncomendasRoute = AuthenticatedEncomendasRouteImport.update({
   id: '/encomendas',
   path: '/encomendas',
@@ -72,6 +79,7 @@ export interface FileRoutesByFullPath {
   '/clientes': typeof AuthenticatedClientesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/encomendas': typeof AuthenticatedEncomendasRoute
+  '/encomendas-whatsapp': typeof AuthenticatedEncomendasWhatsappRoute
   '/gestao-encomendas': typeof AuthenticatedGestaoEncomendasRoute
   '/produtos': typeof AuthenticatedProdutosRoute
 }
@@ -82,6 +90,7 @@ export interface FileRoutesByTo {
   '/clientes': typeof AuthenticatedClientesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/encomendas': typeof AuthenticatedEncomendasRoute
+  '/encomendas-whatsapp': typeof AuthenticatedEncomendasWhatsappRoute
   '/gestao-encomendas': typeof AuthenticatedGestaoEncomendasRoute
   '/produtos': typeof AuthenticatedProdutosRoute
 }
@@ -94,6 +103,7 @@ export interface FileRoutesById {
   '/_authenticated/clientes': typeof AuthenticatedClientesRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/encomendas': typeof AuthenticatedEncomendasRoute
+  '/_authenticated/encomendas-whatsapp': typeof AuthenticatedEncomendasWhatsappRoute
   '/_authenticated/gestao-encomendas': typeof AuthenticatedGestaoEncomendasRoute
   '/_authenticated/produtos': typeof AuthenticatedProdutosRoute
 }
@@ -106,6 +116,7 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/dashboard'
     | '/encomendas'
+    | '/encomendas-whatsapp'
     | '/gestao-encomendas'
     | '/produtos'
   fileRoutesByTo: FileRoutesByTo
@@ -116,6 +127,7 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/dashboard'
     | '/encomendas'
+    | '/encomendas-whatsapp'
     | '/gestao-encomendas'
     | '/produtos'
   id:
@@ -127,6 +139,7 @@ export interface FileRouteTypes {
     | '/_authenticated/clientes'
     | '/_authenticated/dashboard'
     | '/_authenticated/encomendas'
+    | '/_authenticated/encomendas-whatsapp'
     | '/_authenticated/gestao-encomendas'
     | '/_authenticated/produtos'
   fileRoutesById: FileRoutesById
@@ -182,6 +195,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedGestaoEncomendasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/encomendas-whatsapp': {
+      id: '/_authenticated/encomendas-whatsapp'
+      path: '/encomendas-whatsapp'
+      fullPath: '/encomendas-whatsapp'
+      preLoaderRoute: typeof AuthenticatedEncomendasWhatsappRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/encomendas': {
       id: '/_authenticated/encomendas'
       path: '/encomendas'
@@ -210,6 +230,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedEncomendasRoute: typeof AuthenticatedEncomendasRoute
+  AuthenticatedEncomendasWhatsappRoute: typeof AuthenticatedEncomendasWhatsappRoute
   AuthenticatedGestaoEncomendasRoute: typeof AuthenticatedGestaoEncomendasRoute
   AuthenticatedProdutosRoute: typeof AuthenticatedProdutosRoute
 }
@@ -218,6 +239,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedClientesRoute: AuthenticatedClientesRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedEncomendasRoute: AuthenticatedEncomendasRoute,
+  AuthenticatedEncomendasWhatsappRoute: AuthenticatedEncomendasWhatsappRoute,
   AuthenticatedGestaoEncomendasRoute: AuthenticatedGestaoEncomendasRoute,
   AuthenticatedProdutosRoute: AuthenticatedProdutosRoute,
 }
