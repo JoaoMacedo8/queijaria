@@ -145,7 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null };
   };
 
-  const refreshProfile = async () => { if (user) await loadProfile(user.id); };
+  const refreshProfile = async () => { if (user) await loadProfile(user); };
 
   return (
     <Ctx.Provider
