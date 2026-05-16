@@ -425,13 +425,102 @@ function GestaoWhatsAppPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="grid gap-1.5">
                 <Label htmlFor="sim-total">Valor Estimado (€)</Label>
-                <Input id="sim-total" inputMode="decimal" value={form.total} onChange={(e) => setForm({ ...form, total: e.target.value })} placeholder="0,00" />
+                <Input
+                  id="sim-total"
+                  readOnly
+                  tabIndex={-1}
+                  value={totalEstimado.toFixed(2).replace(".", ",")}
+                  className="bg-muted/40 font-medium text-primary"
+                />
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor="sim-produtos">Produtos sugeridos</Label>
-                <Input id="sim-produtos" value={form.produtos} onChange={(e) => setForm({ ...form, produtos: e.target.value })} placeholder="2x Queijo Curado" />
+                <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      id="sim-produtos"
+                      type="button"
+                      variant="outline"
+                      className="w-full justify-between font-normal h-10 px-3"
+                    >
+                      <span className="text-muted-foreground inline-flex items-center gap-1.5">
+                        <Package className="h-3.5 w-3.5" />
+                        {productsLoading ? "A carregar…" : "Adicionar produto"}
+                      </span>
+                      <ChevronsUpDown className="h-3.5 w-3.5 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="p-0 w-[280px]" align="end">
+                    <Command>
+                      <CommandInput placeholder="Procurar produto…" />
+                      <CommandList>
+                        <CommandEmpty>Sem produtos.</CommandEmpty>
+                        <CommandGroup>
+                          {products.map((p) => (
+                            <CommandItem key={p.id} value={p.name} onSelect={() => addProduct(p)}>
+                              <span className="flex-1 truncate">{p.name}</span>
+                              <span className="text-xs text-muted-foreground ml-2">
+                                {formatCurrency(Number(p.price))}
+                              </span>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
+
+            {/* Selected line items */}
+            <AnimatePresence initial={false}>
+              {lineItems.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="flex flex-col gap-1.5 pt-1">
+                    {autoFilled && (
+                      <div className="inline-flex items-center gap-1.5 text-[11px] text-emerald-700">
+                        <Sparkles className="h-3 w-3" />
+                        Sugestões detetadas a partir da mensagem
+                      </div>
+                    )}
+                    {lineItems.map((i) => (
+                      <motion.div
+                        key={i.product_id}
+                        layout
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -4 }}
+                        className="flex items-center gap-2 rounded-md border border-border/60 bg-muted/30 px-2.5 py-1.5"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm truncate">{i.name}</div>
+                          <div className="text-[11px] text-muted-foreground">
+                            {formatCurrency(i.price)} · subtotal {formatCurrency(i.price * i.qty)}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => changeQty(i.product_id, -1)}>
+                            <Minus className="h-3 w-3" />
+                          </Button>
+                          <div className="w-7 text-center text-sm font-medium tabular-nums">{i.qty}</div>
+                          <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => changeQty(i.product_id, +1)}>
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                          <Button type="button" size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground" onClick={() => removeLine(i.product_id)}>
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           <DialogFooter>
