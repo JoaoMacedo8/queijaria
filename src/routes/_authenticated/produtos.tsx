@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { formatCurrency } from "@/lib/orders";
 import type { Product } from "@/lib/products";
+import { ProductDetailsSheet } from "@/components/ProductDetailsSheet";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/produtos")({
@@ -26,6 +27,11 @@ function ProdutosPage() {
   const [editing, setEditing] = useState<Product | null>(null);
   const [open, setOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [detailsProduct, setDetailsProduct] = useState<Product | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+
+  const openDetails = (p: Product) => { setDetailsProduct(p); setDetailsOpen(true); };
+  const stop = (e: React.MouseEvent) => e.stopPropagation();
 
   useEffect(() => {
     const load = async () => {
@@ -71,27 +77,36 @@ function ProdutosPage() {
       ) : (
         <>
           <div className="grid gap-3 md:hidden">
-            {products.map((p) => (
-              <Card key={p.id} className="p-4">
-                <div className="flex justify-between gap-2 mb-2">
-                  <div className="font-medium">{p.name}</div>
-                  <span className={`text-xs px-2 py-0.5 rounded-full border ${p.active ? "bg-emerald-100 text-emerald-900 border-emerald-200" : "bg-muted text-muted-foreground"}`}>
-                    {p.active ? "Ativo" : "Inativo"}
-                  </span>
-                </div>
-                {p.description && <div className="text-xs text-muted-foreground mb-2">{p.description}</div>}
-                <div className="flex justify-between items-center">
-                  <div className="text-sm">
-                    <span className="font-display text-lg text-primary mr-3">{formatCurrency(Number(p.price))}</span>
-                    <span className="text-muted-foreground">Stock: {Number(p.stock)}</span>
+            {products.map((p) => {
+              const min = Number((p as Product & { min_stock?: number }).min_stock ?? 0);
+              const low = min > 0 && Number(p.stock) <= min;
+              return (
+                <Card key={p.id} className="p-4 cursor-pointer hover:shadow-elegant transition-shadow" onClick={() => openDetails(p)}>
+                  <div className="flex justify-between gap-2 mb-2">
+                    <div className="font-medium">{p.name}</div>
+                    <span className={`text-xs px-2 py-0.5 rounded-full border ${p.active ? "bg-emerald-100 text-emerald-900 border-emerald-200" : "bg-muted text-muted-foreground"}`}>
+                      {p.active ? "Ativo" : "Inativo"}
+                    </span>
                   </div>
-                  <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(p)}><Pencil className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => setDeleteId(p.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                  {p.description && <div className="text-xs text-muted-foreground mb-2">{p.description}</div>}
+                  <div className="flex justify-between items-center">
+                    <div className="text-sm flex items-center gap-2 flex-wrap">
+                      <span className="font-display text-lg text-primary">{formatCurrency(Number(p.price))}</span>
+                      <span className="text-muted-foreground">Stock: {Number(p.stock)}</span>
+                      {low && (
+                        <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full border bg-rose-100 text-rose-900 border-rose-200 font-medium">
+                          <AlertTriangle className="h-3 w-3" /> Baixo
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex gap-1" onClick={stop}>
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(p)}><Pencil className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => setDeleteId(p.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                    </div>
                   </div>
-                </div>
-              </Card>
-            ))}
+                </Card>
+              );
+            })}
           </div>
 
           <Card className="hidden md:block overflow-hidden shadow-elegant border-border/60">
@@ -108,23 +123,40 @@ function ProdutosPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/50">
-                  {products.map((p) => (
-                    <tr key={p.id} className="hover:bg-accent/10 transition-colors">
-                      <td className="px-5 py-4 font-medium">{p.name}</td>
-                      <td className="px-5 py-4 text-muted-foreground max-w-md truncate">{p.description ?? "—"}</td>
-                      <td className="px-5 py-4 font-display text-primary">{formatCurrency(Number(p.price))}</td>
-                      <td className="px-5 py-4 text-muted-foreground">{Number(p.stock)}</td>
-                      <td className="px-5 py-4">
-                        <span className={`text-xs px-2.5 py-1 rounded-full border ${p.active ? "bg-emerald-100 text-emerald-900 border-emerald-200" : "bg-muted text-muted-foreground"}`}>
-                          {p.active ? "Ativo" : "Inativo"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right whitespace-nowrap">
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(p)}><Pencil className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" onClick={() => setDeleteId(p.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                      </td>
-                    </tr>
-                  ))}
+                  {products.map((p) => {
+                    const min = Number((p as Product & { min_stock?: number }).min_stock ?? 0);
+                    const low = min > 0 && Number(p.stock) <= min;
+                    return (
+                      <tr
+                        key={p.id}
+                        onClick={() => openDetails(p)}
+                        className="cursor-pointer hover:bg-accent/20 transition-colors"
+                      >
+                        <td className="px-5 py-4 font-medium">{p.name}</td>
+                        <td className="px-5 py-4 text-muted-foreground max-w-md truncate">{p.description ?? "—"}</td>
+                        <td className="px-5 py-4 font-display text-primary">{formatCurrency(Number(p.price))}</td>
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-2">
+                            <span className={low ? "font-medium text-rose-900" : "text-muted-foreground"}>{Number(p.stock)}</span>
+                            {low && (
+                              <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full border bg-rose-100 text-rose-900 border-rose-200 font-medium">
+                                <AlertTriangle className="h-3 w-3" /> Baixo
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-5 py-4">
+                          <span className={`text-xs px-2.5 py-1 rounded-full border ${p.active ? "bg-emerald-100 text-emerald-900 border-emerald-200" : "bg-muted text-muted-foreground"}`}>
+                            {p.active ? "Ativo" : "Inativo"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right whitespace-nowrap" onClick={stop}>
+                          <Button variant="ghost" size="icon" onClick={() => openEdit(p)}><Pencil className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" onClick={() => setDeleteId(p.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -133,6 +165,13 @@ function ProdutosPage() {
       )}
 
       {open && <ProductDialog open={open} onOpenChange={setOpen} product={editing} />}
+
+      <ProductDetailsSheet
+        product={detailsProduct}
+        open={detailsOpen}
+        onOpenChange={setDetailsOpen}
+        onEdit={openEdit}
+      />
 
       <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
         <AlertDialogContent>
@@ -160,6 +199,7 @@ function ProductDialog({ open, onOpenChange, product }: { open: boolean; onOpenC
     description: product?.description ?? "",
     price: product?.price?.toString() ?? "0",
     stock: product?.stock?.toString() ?? "0",
+    min_stock: (product as (Product & { min_stock?: number }) | null)?.min_stock?.toString() ?? "0",
     active: product?.active ?? true,
   });
 
@@ -172,6 +212,7 @@ function ProductDialog({ open, onOpenChange, product }: { open: boolean; onOpenC
       description: form.description.trim() || null,
       price: Number(form.price) || 0,
       stock: Number(form.stock) || 0,
+      min_stock: Number(form.min_stock) || 0,
       active: form.active,
     };
     const { error } = isEdit
@@ -199,7 +240,7 @@ function ProductDialog({ open, onOpenChange, product }: { open: boolean; onOpenC
             <Label className="text-xs text-muted-foreground">Descrição</Label>
             <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Preço (€)</Label>
               <Input type="number" step="0.01" min="0" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
@@ -207,6 +248,10 @@ function ProductDialog({ open, onOpenChange, product }: { open: boolean; onOpenC
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Stock</Label>
               <Input type="number" step="1" min="0" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Stock mín.</Label>
+              <Input type="number" step="1" min="0" value={form.min_stock} onChange={(e) => setForm({ ...form, min_stock: e.target.value })} />
             </div>
           </div>
           <div className="flex items-center justify-between rounded-lg border border-border p-3">

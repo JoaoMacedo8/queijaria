@@ -134,6 +134,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          min_stock: number
           name: string
           price: number
           stock: number
@@ -144,6 +145,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          min_stock?: number
           name: string
           price?: number
           stock?: number
@@ -154,6 +156,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          min_stock?: number
           name?: string
           price?: number
           stock?: number
@@ -187,6 +190,44 @@ export type Database = {
           status?: string
         }
         Relationships: []
+      }
+      stock_movements: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          product_id: string
+          quantity: number
+          type: Database["public"]["Enums"]["stock_movement_type"]
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          product_id: string
+          quantity: number
+          type: Database["public"]["Enums"]["stock_movement_type"]
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          product_id?: string
+          quantity?: number
+          type?: Database["public"]["Enums"]["stock_movement_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -268,6 +309,7 @@ export type Database = {
         | "cancelada"
         | "em_producao"
         | "pronta"
+      stock_movement_type: "producao" | "venda" | "correcao" | "ajuste"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -404,6 +446,7 @@ export const Constants = {
         "em_producao",
         "pronta",
       ],
+      stock_movement_type: ["producao", "venda", "correcao", "ajuste"],
     },
   },
 } as const
