@@ -16,6 +16,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedProdutosRouteImport } from './routes/_authenticated/produtos'
 import { Route as AuthenticatedProducaoRouteImport } from './routes/_authenticated/producao'
 import { Route as AuthenticatedGestaoWhatsappRouteImport } from './routes/_authenticated/gestao-whatsapp'
+import { Route as AuthenticatedGestaoEquipaRouteImport } from './routes/_authenticated/gestao-equipa'
 import { Route as AuthenticatedEncomendasRouteImport } from './routes/_authenticated/encomendas'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
@@ -55,6 +56,12 @@ const AuthenticatedGestaoWhatsappRoute =
     path: '/gestao-whatsapp',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedGestaoEquipaRoute =
+  AuthenticatedGestaoEquipaRouteImport.update({
+    id: '/gestao-equipa',
+    path: '/gestao-equipa',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedEncomendasRoute = AuthenticatedEncomendasRouteImport.update({
   id: '/encomendas',
   path: '/encomendas',
@@ -78,6 +85,7 @@ export interface FileRoutesByFullPath {
   '/clientes': typeof AuthenticatedClientesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/encomendas': typeof AuthenticatedEncomendasRoute
+  '/gestao-equipa': typeof AuthenticatedGestaoEquipaRoute
   '/gestao-whatsapp': typeof AuthenticatedGestaoWhatsappRoute
   '/producao': typeof AuthenticatedProducaoRoute
   '/produtos': typeof AuthenticatedProdutosRoute
@@ -89,6 +97,7 @@ export interface FileRoutesByTo {
   '/clientes': typeof AuthenticatedClientesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/encomendas': typeof AuthenticatedEncomendasRoute
+  '/gestao-equipa': typeof AuthenticatedGestaoEquipaRoute
   '/gestao-whatsapp': typeof AuthenticatedGestaoWhatsappRoute
   '/producao': typeof AuthenticatedProducaoRoute
   '/produtos': typeof AuthenticatedProdutosRoute
@@ -102,6 +111,7 @@ export interface FileRoutesById {
   '/_authenticated/clientes': typeof AuthenticatedClientesRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/encomendas': typeof AuthenticatedEncomendasRoute
+  '/_authenticated/gestao-equipa': typeof AuthenticatedGestaoEquipaRoute
   '/_authenticated/gestao-whatsapp': typeof AuthenticatedGestaoWhatsappRoute
   '/_authenticated/producao': typeof AuthenticatedProducaoRoute
   '/_authenticated/produtos': typeof AuthenticatedProdutosRoute
@@ -115,6 +125,7 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/dashboard'
     | '/encomendas'
+    | '/gestao-equipa'
     | '/gestao-whatsapp'
     | '/producao'
     | '/produtos'
@@ -126,6 +137,7 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/dashboard'
     | '/encomendas'
+    | '/gestao-equipa'
     | '/gestao-whatsapp'
     | '/producao'
     | '/produtos'
@@ -138,6 +150,7 @@ export interface FileRouteTypes {
     | '/_authenticated/clientes'
     | '/_authenticated/dashboard'
     | '/_authenticated/encomendas'
+    | '/_authenticated/gestao-equipa'
     | '/_authenticated/gestao-whatsapp'
     | '/_authenticated/producao'
     | '/_authenticated/produtos'
@@ -201,6 +214,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedGestaoWhatsappRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/gestao-equipa': {
+      id: '/_authenticated/gestao-equipa'
+      path: '/gestao-equipa'
+      fullPath: '/gestao-equipa'
+      preLoaderRoute: typeof AuthenticatedGestaoEquipaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/encomendas': {
       id: '/_authenticated/encomendas'
       path: '/encomendas'
@@ -229,6 +249,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedEncomendasRoute: typeof AuthenticatedEncomendasRoute
+  AuthenticatedGestaoEquipaRoute: typeof AuthenticatedGestaoEquipaRoute
   AuthenticatedGestaoWhatsappRoute: typeof AuthenticatedGestaoWhatsappRoute
   AuthenticatedProducaoRoute: typeof AuthenticatedProducaoRoute
   AuthenticatedProdutosRoute: typeof AuthenticatedProdutosRoute
@@ -238,6 +259,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedClientesRoute: AuthenticatedClientesRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedEncomendasRoute: AuthenticatedEncomendasRoute,
+  AuthenticatedGestaoEquipaRoute: AuthenticatedGestaoEquipaRoute,
   AuthenticatedGestaoWhatsappRoute: AuthenticatedGestaoWhatsappRoute,
   AuthenticatedProducaoRoute: AuthenticatedProducaoRoute,
   AuthenticatedProdutosRoute: AuthenticatedProdutosRoute,
@@ -255,3 +277,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
