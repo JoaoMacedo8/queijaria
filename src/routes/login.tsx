@@ -47,7 +47,8 @@ function LoginPage() {
     if (res.error) {
       toast.error(res.error);
     } else if (mode === "signup") {
-      toast.success("Conta criada. Verifica o teu email para confirmar.");
+      toast.success("Conta criada. A tua conta está pendente de aprovação pelo administrador.");
+      setMode("login");
     }
   };
 
