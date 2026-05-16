@@ -1,9 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { MessageCircle, Check, X, Clock, CheckCircle2, XCircle, Phone } from "lucide-react";
+import { MessageCircle, Check, X, Clock, CheckCircle2, XCircle, Phone, Plus } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/gestao-whatsapp")({
@@ -51,6 +57,30 @@ function GestaoWhatsAppPage() {
   const [orders, setOrders] = useState<WhatsOrder[]>(MOCK_ORDERS);
   const [aprovadas, setAprovadas] = useState(5);
   const [rejeitadas, setRejeitadas] = useState(1);
+  const [simOpen, setSimOpen] = useState(false);
+  const [form, setForm] = useState({ cliente: "", telefone: "", mensagem: "", total: "", produtos: "" });
+
+  const resetForm = () => setForm({ cliente: "", telefone: "", mensagem: "", total: "", produtos: "" });
+
+  const inserirSimulacao = () => {
+    if (!form.cliente.trim() || !form.telefone.trim() || !form.mensagem.trim()) {
+      toast.error("Preencha cliente, telefone e mensagem");
+      return;
+    }
+    const novo: WhatsOrder = {
+      id: `sim-${Date.now()}`,
+      cliente: form.cliente.trim(),
+      telefone: form.telefone.trim(),
+      resumo: form.produtos.trim() || "—",
+      total: Number(form.total.replace(",", ".")) || 0,
+      mensagem: form.mensagem.trim(),
+      recebidoEm: "Agora",
+    };
+    setOrders((prev) => [novo, ...prev]);
+    toast.success("Mensagem simulada inserida");
+    resetForm();
+    setSimOpen(false);
+  };
 
   const aceitar = (o: WhatsOrder) => {
     setOrders((prev) => prev.filter((x) => x.id !== o.id));
@@ -72,18 +102,23 @@ function GestaoWhatsAppPage() {
 
   return (
     <div className="max-w-6xl mx-auto">
-      <header className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="h-10 w-10 rounded-xl bg-accent/20 flex items-center justify-center">
-            <MessageCircle className="h-5 w-5 text-accent-foreground" />
+      <header className="mb-8 flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="h-10 w-10 rounded-xl bg-accent/20 flex items-center justify-center">
+              <MessageCircle className="h-5 w-5 text-accent-foreground" />
+            </div>
+            <h1 className="font-display text-3xl font-semibold text-primary">
+              Validação de Encomendas WhatsApp
+            </h1>
           </div>
-          <h1 className="font-display text-3xl font-semibold text-primary">
-            Validação de Encomendas WhatsApp
-          </h1>
+          <p className="text-muted-foreground text-sm">
+            Reveja e valide as encomendas recebidas via WhatsApp antes de serem processadas.
+          </p>
         </div>
-        <p className="text-muted-foreground text-sm">
-          Reveja e valide as encomendas recebidas via WhatsApp antes de serem processadas.
-        </p>
+        <Button size="lg" onClick={() => setSimOpen(true)} className="bg-primary hover:bg-primary/90 shadow-soft self-start md:self-auto">
+          <Plus className="h-4 w-4 mr-1.5" /> Simular Mensagem
+        </Button>
       </header>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
@@ -162,6 +197,51 @@ function GestaoWhatsAppPage() {
           ))}
         </div>
       )}
+
+      <Dialog open={simOpen} onOpenChange={(o) => { setSimOpen(o); if (!o) resetForm(); }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="font-display text-primary">Simular Mensagem WhatsApp</DialogTitle>
+            <DialogDescription>
+              Adiciona uma encomenda de teste à lista local de validação.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid gap-1.5">
+                <Label htmlFor="sim-cliente">Nome do Cliente</Label>
+                <Input id="sim-cliente" value={form.cliente} onChange={(e) => setForm({ ...form, cliente: e.target.value })} placeholder="Ex: Ana Ribeiro" />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="sim-telefone">Telefone</Label>
+                <Input id="sim-telefone" value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} placeholder="+351 912 000 000" />
+              </div>
+            </div>
+
+            <div className="grid gap-1.5">
+              <Label htmlFor="sim-msg">Texto da mensagem</Label>
+              <Textarea id="sim-msg" rows={4} value={form.mensagem} onChange={(e) => setForm({ ...form, mensagem: e.target.value })} placeholder="Olá, gostava de encomendar..." />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid gap-1.5">
+                <Label htmlFor="sim-total">Valor Estimado (€)</Label>
+                <Input id="sim-total" inputMode="decimal" value={form.total} onChange={(e) => setForm({ ...form, total: e.target.value })} placeholder="0,00" />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="sim-produtos">Produtos sugeridos</Label>
+                <Input id="sim-produtos" value={form.produtos} onChange={(e) => setForm({ ...form, produtos: e.target.value })} placeholder="2x Queijo Curado" />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setSimOpen(false); resetForm(); }}>Cancelar</Button>
+            <Button onClick={inserirSimulacao} className="bg-primary hover:bg-primary/90">Inserir</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
