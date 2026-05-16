@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 export type AccountStatus = "pending" | "approved" | "rejected" | "blocked";
 export type AppRole = "admin" | "employee";
 
+const PRIMARY_ADMIN_EMAIL = "mace11200411@gmail.com";
+
 interface AuthCtx {
   user: User | null;
   session: Session | null;
@@ -29,36 +31,87 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AccountStatus | null>(null);
   const [role, setRole] = useState<AppRole | null>(null);
 
-  const loadProfile = async (uid: string) => {
-    const [{ data: prof }, { data: roles }] = await Promise.all([
-      supabase.from("profiles").select("status").eq("id", uid).maybeSingle(),
-      supabase.from("user_roles").select("role").eq("user_id", uid),
-    ]);
-    setStatus(((prof as { status?: AccountStatus } | null)?.status ?? "pending") as AccountStatus);
-    const rs = (roles ?? []) as { role: AppRole }[];
-    setRole(rs.some((r) => r.role === "admin") ? "admin" : rs[0]?.role ?? "employee");
+  const isPrimaryAdmin = (email?: string | null) => email?.trim().toLowerCase() === PRIMARY_ADMIN_EMAIL;
+
+  const ensureMissingProfile = async (currentUser: User) => {
+    const fallbackName = currentUser.user_metadata?.display_name
+      ?? currentUser.user_metadata?.name
+      ?? currentUser.email?.split("@")[0]
+      ?? "Utilizador";
+
+    const { error } = await supabase.from("profiles").upsert({
+      id: currentUser.id,
+      email: currentUser.email ?? null,
+      display_name: fallbackName,
+      name: fallbackName,
+      status: isPrimaryAdmin(currentUser.email) ? "approved" : "pending",
+    }, { onConflict: "id" });
+
+    if (error) throw error;
+  };
+
+  const loadProfile = async (currentUser: User) => {
+    setLoading(true);
+
+    try {
+      const [{ data: prof }, { data: roles }] = await Promise.all([
+        supabase.from("profiles").select("status").eq("id", currentUser.id).maybeSingle(),
+        supabase.from("user_roles").select("role").eq("user_id", currentUser.id),
+      ]);
+
+      let profile = prof as { status?: AccountStatus } | null;
+
+      if (!profile) {
+        await ensureMissingProfile(currentUser);
+        const { data: ensuredProfile } = await supabase
+          .from("profiles")
+          .select("status")
+          .eq("id", currentUser.id)
+          .maybeSingle();
+
+        profile = ensuredProfile as { status?: AccountStatus } | null;
+      }
+
+      const resolvedRoles = (roles ?? []) as { role: AppRole }[];
+      const primaryAdmin = isPrimaryAdmin(currentUser.email);
+
+      setStatus((profile?.status ?? (primaryAdmin ? "approved" : null)) as AccountStatus | null);
+      setRole(
+        resolvedRoles.some((entry) => entry.role === "admin")
+          ? "admin"
+          : primaryAdmin
+            ? "admin"
+            : resolvedRoles[0]?.role ?? "employee",
+      );
+    } catch (error) {
+      console.error("Failed to load account profile", error);
+      setStatus(isPrimaryAdmin(currentUser.email) ? "approved" : null);
+      setRole(isPrimaryAdmin(currentUser.email) ? "admin" : null);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
+    const syncSession = async (s: Session | null) => {
       setSession(s);
       setUser(s?.user ?? null);
+
       if (s?.user) {
-        setTimeout(() => { loadProfile(s.user.id); }, 0);
+        await loadProfile(s.user);
       } else {
         setStatus(null);
         setRole(null);
-      }
-    });
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-      if (s?.user) {
-        loadProfile(s.user.id).finally(() => setLoading(false));
-      } else {
         setLoading(false);
       }
+    };
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
+      void syncSession(s);
     });
+
+    void supabase.auth.getSession().then(({ data: { session: s } }) => syncSession(s));
+
     return () => subscription.unsubscribe();
   }, []);
 
@@ -92,7 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null };
   };
 
-  const refreshProfile = async () => { if (user) await loadProfile(user.id); };
+  const refreshProfile = async () => { if (user) await loadProfile(user); };
 
   return (
     <Ctx.Provider
