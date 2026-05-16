@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   MessageCircle, Check, X, Clock, CheckCircle2, XCircle, Phone, Plus, Layers, Loader2,
+  Minus, Sparkles, Package, ChevronsUpDown,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,9 +13,14 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
+} from "@/components/ui/command";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/lib/orders";
+import type { Product } from "@/lib/products";
 
 export const Route = createFileRoute("/_authenticated/gestao-whatsapp")({
   component: GestaoWhatsAppPage,
@@ -36,6 +42,8 @@ type WhatsPending = {
 };
 
 type FilterKey = "all" | "pending" | "approved" | "rejected";
+
+type LineItem = { product_id: string; name: string; price: number; qty: number };
 
 /* ============================== Helpers ============================== */
 
@@ -62,6 +70,56 @@ async function convertToOfficialOrder(p: WhatsPending) {
   if (error) throw error;
 }
 
+/** Loose accent-insensitive token. */
+function norm(s: string) {
+  return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+/** Map written numbers (PT) to digits for simple quantity extraction. */
+const WORD_NUMS: Record<string, number> = {
+  um: 1, uma: 1, dois: 2, duas: 2, tres: 3, três: 3, quatro: 4, cinco: 5,
+  seis: 6, sete: 7, oito: 8, nove: 9, dez: 10, dúzia: 12, duzia: 12,
+};
+
+/**
+ * Heuristic product extraction from a free-text WhatsApp message.
+ * Modular & swappable later by a Gemini call: same signature.
+ */
+function extractItemsFromMessage(message: string, products: Product[]): LineItem[] {
+  if (!message.trim() || products.length === 0) return [];
+  const text = ` ${norm(message)} `;
+  const found = new Map<string, LineItem>();
+
+  for (const p of products) {
+    const tokens = norm(p.name).split(/\s+/).filter((t) => t.length > 2);
+    if (!tokens.length) continue;
+    // Require at least one distinctive token to be present.
+    const hits = tokens.filter((t) => text.includes(t));
+    if (hits.length === 0) continue;
+
+    // Try to find a quantity right before the first hit.
+    const anchor = hits[0];
+    const idx = text.indexOf(anchor);
+    const before = text.slice(Math.max(0, idx - 25), idx);
+    let qty = 1;
+    const numMatch = before.match(/(\d+)\s*x?\s*$/);
+    if (numMatch) qty = Math.max(1, parseInt(numMatch[1], 10));
+    else {
+      const wordMatch = before.match(/(um|uma|dois|duas|tres|três|quatro|cinco|seis|sete|oito|nove|dez|duzia|dúzia)\s+$/);
+      if (wordMatch) qty = WORD_NUMS[wordMatch[1]] ?? 1;
+    }
+
+    const existing = found.get(p.id);
+    if (existing) existing.qty += qty;
+    else found.set(p.id, { product_id: p.id, name: p.name, price: Number(p.price) || 0, qty });
+  }
+
+  return Array.from(found.values());
+}
+
+function itemsToText(items: LineItem[]) {
+  return items.map((i) => `${i.qty}x ${i.name}`).join(", ");
+}
 /* ============================== Page ============================== */
 
 function GestaoWhatsAppPage() {
@@ -70,8 +128,77 @@ function GestaoWhatsAppPage() {
   const [filter, setFilter] = useState<FilterKey>("pending");
   const [actingId, setActingId] = useState<string | null>(null);
   const [simOpen, setSimOpen] = useState(false);
-  const [form, setForm] = useState({ cliente: "", telefone: "", mensagem: "", total: "", produtos: "" });
-  const resetForm = () => setForm({ cliente: "", telefone: "", mensagem: "", total: "", produtos: "" });
+  const [form, setForm] = useState({ cliente: "", telefone: "", mensagem: "" });
+  const [lineItems, setLineItems] = useState<LineItem[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [productsLoading, setProductsLoading] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [autoFilled, setAutoFilled] = useState(false);
+
+  const resetForm = () => {
+    setForm({ cliente: "", telefone: "", mensagem: "" });
+    setLineItems([]);
+    setAutoFilled(false);
+  };
+
+  const totalEstimado = useMemo(
+    () => lineItems.reduce((s, i) => s + i.price * i.qty, 0),
+    [lineItems],
+  );
+
+  /* ---------- load products when dialog opens ---------- */
+  useEffect(() => {
+    if (!simOpen || products.length > 0) return;
+    setProductsLoading(true);
+    supabase
+      .from("products")
+      .select("*")
+      .eq("active", true)
+      .order("name")
+      .then(({ data, error }) => {
+        if (error) toast.error(error.message);
+        else setProducts((data ?? []) as Product[]);
+        setProductsLoading(false);
+      });
+  }, [simOpen, products.length]);
+
+  /* ---------- auto-extract from message (debounced) ---------- */
+  useEffect(() => {
+    if (!simOpen || !form.mensagem.trim() || products.length === 0) return;
+    const t = setTimeout(() => {
+      const guesses = extractItemsFromMessage(form.mensagem, products);
+      if (guesses.length === 0) return;
+      // Merge non-destructively: keep manual quantities, add missing ones.
+      setLineItems((curr) => {
+        const map = new Map(curr.map((i) => [i.product_id, i]));
+        let added = 0;
+        for (const g of guesses) {
+          if (!map.has(g.product_id)) { map.set(g.product_id, g); added += 1; }
+        }
+        if (added > 0) setAutoFilled(true);
+        return Array.from(map.values());
+      });
+    }, 400);
+    return () => clearTimeout(t);
+  }, [form.mensagem, products, simOpen]);
+
+  /* ---------- line item helpers ---------- */
+  const addProduct = (p: Product) => {
+    setLineItems((curr) => {
+      const existing = curr.find((i) => i.product_id === p.id);
+      if (existing) return curr.map((i) => i.product_id === p.id ? { ...i, qty: i.qty + 1 } : i);
+      return [...curr, { product_id: p.id, name: p.name, price: Number(p.price) || 0, qty: 1 }];
+    });
+    setPickerOpen(false);
+  };
+  const changeQty = (id: string, delta: number) => {
+    setLineItems((curr) =>
+      curr
+        .map((i) => i.product_id === id ? { ...i, qty: Math.max(0, i.qty + delta) } : i)
+        .filter((i) => i.qty > 0),
+    );
+  };
+  const removeLine = (id: string) => setLineItems((curr) => curr.filter((i) => i.product_id !== id));
 
   /* ---------- load + realtime ---------- */
   useEffect(() => {
@@ -162,8 +289,8 @@ function GestaoWhatsAppPage() {
       customer_name: form.cliente.trim(),
       phone: form.telefone.trim(),
       original_message: form.mensagem.trim(),
-      detected_products: form.produtos.trim() || "—",
-      estimated_total: Number(form.total.replace(",", ".")) || 0,
+      detected_products: lineItems.length ? itemsToText(lineItems) : "—",
+      estimated_total: totalEstimado,
       status: "pending",
     });
     if (error) { toast.error(error.message); return; }
@@ -298,13 +425,102 @@ function GestaoWhatsAppPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="grid gap-1.5">
                 <Label htmlFor="sim-total">Valor Estimado (€)</Label>
-                <Input id="sim-total" inputMode="decimal" value={form.total} onChange={(e) => setForm({ ...form, total: e.target.value })} placeholder="0,00" />
+                <Input
+                  id="sim-total"
+                  readOnly
+                  tabIndex={-1}
+                  value={totalEstimado.toFixed(2).replace(".", ",")}
+                  className="bg-muted/40 font-medium text-primary"
+                />
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor="sim-produtos">Produtos sugeridos</Label>
-                <Input id="sim-produtos" value={form.produtos} onChange={(e) => setForm({ ...form, produtos: e.target.value })} placeholder="2x Queijo Curado" />
+                <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      id="sim-produtos"
+                      type="button"
+                      variant="outline"
+                      className="w-full justify-between font-normal h-10 px-3"
+                    >
+                      <span className="text-muted-foreground inline-flex items-center gap-1.5">
+                        <Package className="h-3.5 w-3.5" />
+                        {productsLoading ? "A carregar…" : "Adicionar produto"}
+                      </span>
+                      <ChevronsUpDown className="h-3.5 w-3.5 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="p-0 w-[280px]" align="end">
+                    <Command>
+                      <CommandInput placeholder="Procurar produto…" />
+                      <CommandList>
+                        <CommandEmpty>Sem produtos.</CommandEmpty>
+                        <CommandGroup>
+                          {products.map((p) => (
+                            <CommandItem key={p.id} value={p.name} onSelect={() => addProduct(p)}>
+                              <span className="flex-1 truncate">{p.name}</span>
+                              <span className="text-xs text-muted-foreground ml-2">
+                                {formatCurrency(Number(p.price))}
+                              </span>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
+
+            {/* Selected line items */}
+            <AnimatePresence initial={false}>
+              {lineItems.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="flex flex-col gap-1.5 pt-1">
+                    {autoFilled && (
+                      <div className="inline-flex items-center gap-1.5 text-[11px] text-emerald-700">
+                        <Sparkles className="h-3 w-3" />
+                        Sugestões detetadas a partir da mensagem
+                      </div>
+                    )}
+                    {lineItems.map((i) => (
+                      <motion.div
+                        key={i.product_id}
+                        layout
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -4 }}
+                        className="flex items-center gap-2 rounded-md border border-border/60 bg-muted/30 px-2.5 py-1.5"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm truncate">{i.name}</div>
+                          <div className="text-[11px] text-muted-foreground">
+                            {formatCurrency(i.price)} · subtotal {formatCurrency(i.price * i.qty)}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => changeQty(i.product_id, -1)}>
+                            <Minus className="h-3 w-3" />
+                          </Button>
+                          <div className="w-7 text-center text-sm font-medium tabular-nums">{i.qty}</div>
+                          <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => changeQty(i.product_id, +1)}>
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                          <Button type="button" size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground" onClick={() => removeLine(i.product_id)}>
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           <DialogFooter>
